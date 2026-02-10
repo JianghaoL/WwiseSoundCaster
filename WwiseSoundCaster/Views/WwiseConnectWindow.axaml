@@ -1,0 +1,87 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WwiseSoundCaster.ViewModels"
+        xmlns:conv="using:WwiseSoundCaster.Converters"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="320"
+        x:Class="WwiseSoundCaster.Views.WwiseConnectWindow"
+        x:DataType="vm:WwiseConnectWindowViewModel"
+        Title="Wwise SoundCaster — Connect"
+        Width="520" Height="320"
+        MinWidth="400" MinHeight="260"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E1E">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         RESOURCES – Converters
+         ═══════════════════════════════════════════════════════════ -->
+    <Window.Resources>
+        <conv:ConnectionStatusToBrushConverter x:Key="StatusToBrush"/>
+    </Window.Resources>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Design-time DataContext
+         ═══════════════════════════════════════════════════════════ -->
+    <Design.DataContext>
+        <vm:WwiseConnectWindowViewModel/>
+    </Design.DataContext>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ROOT LAYOUT
+         A vertically-centered StackPanel holding the three elements:
+           1. Instructional label
+           2. Connect button
+           3. Status label
+         ═══════════════════════════════════════════════════════════ -->
+    <Border Padding="40"
+            Background="#1E1E1E">
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    Spacing="24"
+                    MaxWidth="400">
+
+            <!-- ─────────────────────────────────────────────────
+                 1. INSTRUCTIONAL LABEL
+                 Tells the user a Wwise project must be open.
+                 ───────────────────────────────────────────────── -->
+            <TextBlock Text="Please ensure a Wwise project is open before connecting."
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       FontSize="15"
+                       Foreground="#CCCCCC"
+                       HorizontalAlignment="Center"/>
+
+            <!-- ─────────────────────────────────────────────────
+                 2. CONNECT BUTTON
+                 Bound to ConnectToWwiseCommand on the ViewModel.
+                 Accent colour matching the DAW-inspired theme.
+                 ───────────────────────────────────────────────── -->
+            <Button Content="Connect to Wwise"
+                    Command="{Binding ConnectToWwiseCommand}"
+                    HorizontalAlignment="Center"
+                    Padding="24,10"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Foreground="White"
+                    Background="#007ACC"
+                    CornerRadius="4"
+                    Cursor="Hand"/>
+
+            <!-- ─────────────────────────────────────────────────
+                 3. STATUS LABEL
+                 Text and colour are both driven by the ViewModel.
+                 Foreground uses ConnectionStatusToBrushConverter
+                 so that the colour reflects the connection state
+                 (gray / green / red) without hard-coding.
+                 ───────────────────────────────────────────────── -->
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"
+                       TextAlignment="Center"
+                       FontSize="13"
+                       HorizontalAlignment="Center"/>
+
+        </StackPanel>
+    </Border>
+</Window>
