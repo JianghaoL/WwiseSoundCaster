@@ -1,20 +1,298 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WwiseSoundCaster.ViewModels"
+        xmlns:conv="using:WwiseSoundCaster.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
         x:Class="WwiseSoundCaster.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="WwiseSoundCaster">
+        Title="Wwise SoundCaster"
+        Width="1280" Height="720"
+        MinWidth="900" MinHeight="500"
+        Background="#1E1E1E">
 
+    <!-- ═══════════════════════════════════════════════════════════
+         RESOURCES – Converters
+         ═══════════════════════════════════════════════════════════ -->
+    <Window.Resources>
+        <conv:BoolToStatusBrushConverter x:Key="BoolToStatusBrush"/>
+    </Window.Resources>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Design-time DataContext
+         ═══════════════════════════════════════════════════════════ -->
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <!-- ═══════════════════════════════════════════════════════════
+         ROOT LAYOUT – Two-column Grid with GridSplitter
+         Col 0 : Left Event Browser   (~30 %)
+         Col 1 : GridSplitter
+         Col 2 : Right Control Panel   (~70 %)
+         ═══════════════════════════════════════════════════════════ -->
+    <Grid ColumnDefinitions="1*,4,3*">
 
+        <!-- ─────────────────────────────────────────────────────
+             LEFT PANEL – Event Browser
+             ───────────────────────────────────────────────────── -->
+        <Border Grid.Column="0"
+                Background="#252526"
+                CornerRadius="0"
+                Margin="0">
+            <DockPanel Margin="0">
+
+                <!-- Search Bar (top) -->
+                <TextBox DockPanel.Dock="Top"
+                         Watermark="Search events..."
+                         Text="{Binding SearchKeywords, Mode=TwoWay}"
+                         Margin="8"
+                         Padding="8,6"
+                         Background="#3C3C3C"
+                         Foreground="#CCCCCC"
+                         BorderBrush="#555555"
+                         BorderThickness="1"
+                         CornerRadius="4"/>
+
+                <!-- Event TreeView (fill remaining space) -->
+                <TreeView ItemsSource="{Binding EventTreeNodes}"
+                          SelectedItem="{Binding SelectedEventNode, Mode=TwoWay}"
+                          Margin="4,0,4,4"
+                          Background="Transparent">
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate ItemsSource="{Binding Children}"
+                                          x:DataType="vm:EventNodeViewModel">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <!-- Folder icon (visible when IsFolder=true) -->
+                                <PathIcon Width="14" Height="14"
+                                          Foreground="#FFD54F"
+                                          IsVisible="{Binding IsFolder}">
+                                    <PathIcon.Data>
+                                        <PathGeometry Figures="M2,4 L2,14 L14,14 L14,6 L8,6 L6,4 Z"/>
+                                    </PathIcon.Data>
+                                </PathIcon>
+                                <!-- Event icon (visible when IsFolder=false) -->
+                                <PathIcon Width="14" Height="14"
+                                          Foreground="#9E9E9E"
+                                          IsVisible="{Binding !IsFolder}">
+                                    <PathIcon.Data>
+                                        <PathGeometry Figures="M3,2 L13,8 L3,14 Z"/>
+                                    </PathIcon.Data>
+                                </PathIcon>
+                                <!-- Event / folder name -->
+                                <TextBlock Text="{Binding Name}"
+                                           VerticalAlignment="Center"
+                                           Foreground="#DCDCDC"/>
+                            </StackPanel>
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </DockPanel>
+        </Border>
+
+        <!-- GridSplitter -->
+        <GridSplitter Grid.Column="1"
+                      Width="4"
+                      Background="#333333"
+                      ResizeDirection="Columns"/>
+
+        <!-- ─────────────────────────────────────────────────────
+             RIGHT PANEL – Event Detail & Controls
+             Only visible when an event is selected.
+             ───────────────────────────────────────────────────── -->
+        <Grid Grid.Column="2"
+              RowDefinitions="Auto,Auto,Auto,*,Auto"
+              Margin="0"
+              IsVisible="{Binding HasSelectedEvent}">
+
+            <!-- ═════════════════════════════════════════════════
+                 ROW 0 – Event Header (card style)
+                 ═════════════════════════════════════════════════ -->
+            <Border Grid.Row="0"
+                    Background="#2D2D30"
+                    CornerRadius="6"
+                    Margin="12,12,12,6"
+                    Padding="16,12">
+                <DockPanel>
+                    <!-- Playback controls (right) -->
+                    <StackPanel DockPanel.Dock="Right"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                VerticalAlignment="Center">
+                        <!-- Play Button -->
+                        <Button Command="{Binding PlayEventCommand}"
+                                ToolTip.Tip="Play Event"
+                                Background="#007ACC"
+                                Foreground="White"
+                                Padding="10,6"
+                                CornerRadius="4"
+                                FontWeight="Bold">
+                            ▶
+                        </Button>
+                        <!-- Stop Button -->
+                        <Button Command="{Binding StopEventCommand}"
+                                ToolTip.Tip="Stop All"
+                                Background="#C62828"
+                                Foreground="White"
+                                Padding="10,6"
+                                CornerRadius="4"
+                                FontWeight="Bold">
+                            ■
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Event name (left, fills remaining space) -->
+                    <TextBlock Text="{Binding EventName}"
+                               FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="#E0E0E0"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"/>
+                </DockPanel>
+            </Border>
+
+            <!-- ═════════════════════════════════════════════════
+                 ROW 1 – RTPC Controls
+                 ═════════════════════════════════════════════════ -->
+            <Border Grid.Row="1"
+                    Background="#2D2D30"
+                    CornerRadius="6"
+                    Margin="12,6"
+                    Padding="12">
+                <StackPanel>
+                    <!-- Section heading -->
+                    <TextBlock Text="RTPC Parameters"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#9E9E9E"
+                               Margin="0,0,0,8"/>
+
+                    <!-- Dynamic RTPC rows -->
+                    <ItemsControl ItemsSource="{Binding CurrentEventRTPCs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RtpcViewModel">
+                                <Grid ColumnDefinitions="120,*,60"
+                                      Margin="0,4">
+                                    <!-- Parameter name -->
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Name}"
+                                               Foreground="#BDBDBD"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <!-- Slider (stretch to fill) -->
+                                    <Slider Grid.Column="1"
+                                            Minimum="{Binding MinValue}"
+                                            Maximum="{Binding MaxValue}"
+                                            Value="{Binding CurrentValue, Mode=TwoWay}"
+                                            Margin="8,0"
+                                            VerticalAlignment="Center"/>
+                                    <!-- Current value display -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding CurrentValue, StringFormat={}{0:F1}}"
+                                               Foreground="#E0E0E0"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Right"
+                                               FontFamily="Consolas"
+                                               FontSize="12"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Placeholder when no RTPCs are present -->
+                    <TextBlock Text="No RTPC parameters for this event."
+                               Foreground="#616161"
+                               FontStyle="Italic"
+                               IsVisible="{Binding !CurrentEventRTPCs.Count}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ═════════════════════════════════════════════════
+                 ROW 2 – Switch Controls
+                 ═════════════════════════════════════════════════ -->
+            <Border Grid.Row="2"
+                    Background="#2D2D30"
+                    CornerRadius="6"
+                    Margin="12,6"
+                    Padding="12">
+                <StackPanel>
+                    <!-- Section heading -->
+                    <TextBlock Text="Switch Groups"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#9E9E9E"
+                               Margin="0,0,0,8"/>
+
+                    <!-- Dynamic Switch groups – 2-column layout -->
+                    <ItemsControl ItemsSource="{Binding CurrentEventSwitches}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SwitchGroupViewModel">
+                                <StackPanel Margin="4,4">
+                                    <!-- Group name label -->
+                                    <TextBlock Text="{Binding GroupName}"
+                                               Foreground="#BDBDBD"
+                                               FontSize="12"
+                                               Margin="0,0,0,4"/>
+                                    <!-- State selector -->
+                                    <ComboBox ItemsSource="{Binding AvailableStates}"
+                                              SelectedItem="{Binding SelectedState, Mode=TwoWay}"
+                                              HorizontalAlignment="Stretch"
+                                              Background="#3C3C3C"
+                                              Foreground="#DCDCDC"
+                                              BorderBrush="#555555"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Placeholder when no Switches are present -->
+                    <TextBlock Text="No switch groups for this event."
+                               Foreground="#616161"
+                               FontStyle="Italic"
+                               IsVisible="{Binding !CurrentEventSwitches.Count}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ═════════════════════════════════════════════════
+                 ROW 3 – Flexible spacer (star-sized, pushes status bar down)
+                 ═════════════════════════════════════════════════ -->
+
+            <!-- ═════════════════════════════════════════════════
+                 ROW 4 – Status Bar
+                 ═════════════════════════════════════════════════ -->
+            <Border Grid.Row="4"
+                    Background="{Binding IsConnected, Converter={StaticResource BoolToStatusBrush}}"
+                    Padding="12,6"
+                    CornerRadius="0">
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="White"
+                           FontSize="12"
+                           VerticalAlignment="Center"/>
+            </Border>
+        </Grid>
+
+        <!-- Placeholder when nothing is selected -->
+        <StackPanel Grid.Column="2"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding !HasSelectedEvent}">
+            <TextBlock Text="Select an event from the tree"
+                       FontSize="16"
+                       Foreground="#616161"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="to view its controls"
+                       FontSize="14"
+                       Foreground="#4A4A4A"
+                       HorizontalAlignment="Center"
+                       Margin="0,4,0,0"/>
+        </StackPanel>
+    </Grid>
 </Window>
