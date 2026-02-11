@@ -152,10 +152,10 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             WwiseObjectHandler.nodeToObjectMap.TryGetValue(value.SourceNode, out SelectedObject);
 
+            SelectedObjectNote = SelectedObject?.Notes ?? string.Empty;
             // TODO: Retrieve the object's Note from the WwiseObject.
             //       When WAAPI note-fetching is implemented, populate
             //       SelectedObjectNote here. For now, read from the cached model.
-            SelectedObjectNote = SelectedObject?.Notes ?? string.Empty;
 
             // Load event dependencies asynchronously (fire-and-forget)
             _ = LoadSelectedEventDependenciesAsync();
@@ -226,7 +226,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             GameObject = new JObject
             {
-                {"gameObject", Random.Shared.Next(0, 9999)}, // Random ID for testing
+                {"gameObject", Random.Shared.Next(1, 9999)}, // Random ID for testing
                 {"name", SelectedObject.Name}
             };
 
