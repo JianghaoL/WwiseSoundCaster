@@ -1,0 +1,52 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using WwiseSoundCaster.Models;
+
+namespace WwiseSoundCaster.Services;
+
+/// <summary>
+/// Production implementation of <see cref="IWwiseObjectService"/>.
+///
+/// Delegates the raw WAAPI query work to <see cref="WwiseObjectHandler"/>
+/// and returns clean <see cref="WwiseEventNode"/> hierarchies.
+///
+/// The connection guard ensures callers get an empty result instead of
+/// an exception when WAAPI is not available.
+/// </summary>
+public class WwiseObjectService : IWwiseObjectService
+{
+    private readonly IWwiseConnectionService _connectionService;
+
+    public WwiseObjectService(IWwiseConnectionService connectionService)
+    {
+        _connectionService = connectionService;
+    }
+
+    #region IWwiseObjectService
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<WwiseEventNode>> FetchEventHierarchyAsync()
+    {
+        // Guard: do not attempt queries when disconnected.
+        if (!_connectionService.IsConnected)
+        {
+            return Array.Empty<WwiseEventNode>();
+        }
+
+        try
+        {
+            // TODO: Extend this to also fetch RTPC and Switch dependencies
+            //       per event (see architecture doc — event dependency extraction).
+            return await WwiseObjectHandler.FetchWwiseObjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            // TODO: Replace Console with a proper logging abstraction (e.g. ILogger).
+            Console.WriteLine($"[WwiseObjectService] Failed to fetch event hierarchy: {ex.Message}");
+            return Array.Empty<WwiseEventNode>();
+        }
+    }
+
+    #endregion
+}

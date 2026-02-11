@@ -21,12 +21,9 @@
         <conv:ConnectionStatusToBrushConverter x:Key="StatusToBrush"/>
     </Window.Resources>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         Design-time DataContext
-         ═══════════════════════════════════════════════════════════ -->
-    <Design.DataContext>
-        <vm:WwiseConnectWindowViewModel/>
-    </Design.DataContext>
+    <!-- Design-time: x:DataType above is sufficient for compiled bindings.
+         No Design.DataContext instantiation because the ViewModel requires
+         DI constructor parameters. -->
 
     <!-- ═══════════════════════════════════════════════════════════
          ROOT LAYOUT

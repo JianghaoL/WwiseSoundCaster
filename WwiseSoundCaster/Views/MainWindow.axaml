@@ -19,12 +19,9 @@
         <conv:BoolToStatusBrushConverter x:Key="BoolToStatusBrush"/>
     </Window.Resources>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         Design-time DataContext
-         ═══════════════════════════════════════════════════════════ -->
-    <Design.DataContext>
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+    <!-- Design-time: x:DataType above is sufficient for compiled bindings.
+         No Design.DataContext instantiation because the ViewModel requires
+         DI constructor parameters. -->
 
     <!-- ═══════════════════════════════════════════════════════════
          ROOT LAYOUT – Two-column Grid with GridSplitter
