@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WwiseSoundCaster.ViewModels"
+        xmlns:beh="using:WwiseSoundCaster.Behaviors"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="720"
@@ -205,30 +206,61 @@
                     <ItemsControl ItemsSource="{Binding CurrentEventRTPCs}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:RtpcViewModel">
-                                <Grid ColumnDefinitions="120,*,60"
-                                      Margin="0,4">
-                                    <!-- Parameter name -->
-                                    <TextBlock Grid.Column="0"
-                                               Text="{Binding Name}"
+                                <StackPanel Margin="0,4,0,10">
+                                    <!-- Property display name (what this RTPC controls, e.g. "Volume") -->
+                                    <TextBlock Text="{Binding PropertyDisplayName}"
+                                               FontSize="10"
+                                               Foreground="#8A8A8A"
+                                               Margin="0,0,0,1"
+                                               IsVisible="{Binding HasPropertyDisplayName}"/>
+                                    <!-- RTPC parameter name -->
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="13"
                                                Foreground="#BDBDBD"
-                                               VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"/>
-                                    <!-- Slider (stretch to fill) -->
-                                    <Slider Grid.Column="1"
-                                            Minimum="{Binding MinValue}"
-                                            Maximum="{Binding MaxValue}"
-                                            Value="{Binding CurrentValue, Mode=TwoWay}"
-                                            Margin="8,0"
-                                            VerticalAlignment="Center"/>
-                                    <!-- Current value display -->
-                                    <TextBlock Grid.Column="2"
-                                               Text="{Binding CurrentValue, StringFormat={}{0:F1}}"
-                                               Foreground="#E0E0E0"
-                                               VerticalAlignment="Center"
-                                               HorizontalAlignment="Right"
-                                               FontFamily="Consolas"
-                                               FontSize="12"/>
-                                </Grid>
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,0,0,6"/>
+                                    <!-- Slider + numeric value -->
+                                    <Grid ColumnDefinitions="*,64">
+                                        <!-- Slider (stretch to fill) -->
+                                        <Slider Grid.Column="0"
+                                                Minimum="{Binding MinValue}"
+                                                Maximum="{Binding MaxValue}"
+                                                Value="{Binding CurrentValue, Mode=TwoWay}"
+                                                Margin="0,0,8,0"
+                                                VerticalAlignment="Center"/>
+                                        <!-- Read-only value display (double-click to enter editing mode) -->
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding CurrentValue, StringFormat={}{0:F1}}"
+                                                   Foreground="#E0E0E0"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right"
+                                                   FontFamily="Consolas"
+                                                   FontSize="12"
+                                                   Cursor="Hand"
+                                                   IsVisible="{Binding !IsEditing}"
+                                                   beh:DoubleTapBehavior.Command="{Binding BeginEditCommand}"/>
+                                        <!-- Editable value input (visible during editing mode) -->
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding EditText, Mode=TwoWay}"
+                                                 IsVisible="{Binding IsEditing}"
+                                                 FontFamily="Consolas"
+                                                 FontSize="12"
+                                                 Foreground="#E0E0E0"
+                                                 Background="#3C3C3C"
+                                                 BorderBrush="#555555"
+                                                 BorderThickness="1"
+                                                 CornerRadius="3"
+                                                 Padding="4,2"
+                                                 HorizontalContentAlignment="Right"
+                                                 VerticalAlignment="Center"
+                                                 beh:TextBoxCommitBehavior.CommitCommand="{Binding CommitEditCommand}">
+                                            <TextBox.KeyBindings>
+                                                <KeyBinding Gesture="Enter" Command="{Binding CommitEditCommand}"/>
+                                                <KeyBinding Gesture="Escape" Command="{Binding CancelEditCommand}"/>
+                                            </TextBox.KeyBindings>
+                                        </TextBox>
+                                    </Grid>
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

@@ -165,6 +165,7 @@ public partial class MainWindowViewModel : ViewModelBase
             SelectedObject = null;
             SelectedObjectNote = string.Empty;
             RelatedEvents.Clear();
+            CurrentEventRTPCs.Clear();
         }
     }
 
@@ -219,8 +220,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 }
             }
 
-
-
+            // Load RTPC dependencies
+            await LoadRtpcDependenciesAsync();
 
             // Register a gameobject for event posting
 
@@ -252,6 +253,75 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Console.WriteLine($"[MainWindowViewModel] Failed to load event dependencies: {ex.Message}");
             SetStatus($"Failed to load dependencies: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Loads RTPC (Game Parameter) dependencies for the currently selected object.
+    /// Queries WAAPI for all RTPCs and populates the CurrentEventRTPCs collection.
+    /// </summary>
+    private async Task LoadRtpcDependenciesAsync()
+    {
+        if (SelectedObject == null || WwiseClient.client == null || !WwiseClient.isConnected)
+        {
+            return;
+        }
+
+        try
+        {
+            // Query WAAPI for all Game Parameters (RTPCs)
+            var args = new JObject
+            {
+                //{"waql", $"$ \"{SelectedObject.Id}\""}
+
+                { "waql", $"$ from object \"{SelectedObject.Id}\" select @RTPC" }
+
+                //{ "waql", $"$ from object \"{SelectedObject.Id}\" select descendants where type = \"RTPC\"" }
+            };
+
+            var options = new JObject
+            {
+                //{"return", new JArray("id", "name", "@Min", "@Max", "@BindToBuiltInParam")}
+
+                //{"return", new JArray("@RTPC")}
+
+                { "return", new JArray { "id", "@PropertyName", "@ControlInput.name" } }
+            };
+
+
+            var result = await WwiseClient.client.Call(
+                ak.wwise.core.@object.get, args, options);
+
+            Console.WriteLine($"[MainWindowViewModel] RTPCs for selected object: {result["return"]?.ToString()}");
+
+            // Populate CurrentEventRTPCs from the query result
+            CurrentEventRTPCs.Clear();
+            var returnArray = result["return"] as JArray;
+            if (returnArray != null)
+            {
+                foreach (var item in returnArray)
+                {
+
+
+                    var rtpcVm = new RtpcViewModel
+                    {
+                        Id                  = item["id"]?.ToString() ?? string.Empty,
+                        Name                = item["@ControlInput.name"]?.ToString() ?? "(unnamed)",
+                        PropertyDisplayName = item["@PropertyName"]?.ToString() ?? string.Empty,
+                        // MinValue            = item["@Min"]?.Value<double>() ?? 0.0,
+                        // MaxValue            = item["@Max"]?.Value<double>() ?? 100.0,
+                        // CurrentValue        = item["@Min"]?.Value<double>() ?? 0.0 // Start at min value
+                    };
+                    CurrentEventRTPCs.Add(rtpcVm);
+                    await rtpcVm.SetRangeAsync(item as JObject);
+                }
+            }
+
+            Console.WriteLine($"[MainWindowViewModel] Loaded {CurrentEventRTPCs.Count} RTPC(s)");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MainWindowViewModel] Failed to load RTPC dependencies: {ex.Message}");
         }
     }
 
