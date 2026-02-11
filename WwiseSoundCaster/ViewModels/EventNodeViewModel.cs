@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using WwiseSoundCaster.Models;
 
 namespace WwiseSoundCaster.ViewModels;
 
@@ -25,4 +26,10 @@ public partial class EventNodeViewModel : ViewModelBase
     /// Child nodes for hierarchical display.
     /// </summary>
     public ObservableCollection<EventNodeViewModel> Children { get; } = new();
+
+    /// <summary>
+    /// Reference to the original WwiseEventNode data model.
+    /// Used to lookup associated data in WwiseObjectHandler.nodeToObjectMap.
+    /// </summary>
+    public WwiseEventNode? SourceNode { get; set; }
 }

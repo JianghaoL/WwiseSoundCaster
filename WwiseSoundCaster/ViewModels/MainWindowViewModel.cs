@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json.Linq;
 using WwiseSoundCaster.Models;
 using WwiseSoundCaster.Services;
 
@@ -23,6 +26,17 @@ namespace WwiseSoundCaster.ViewModels;
 /// </summary>
 public partial class MainWindowViewModel : ViewModelBase
 {
+    public static WwiseObject? SelectedObject;
+
+    public static JObject? GameObject;
+
+    // Listener object for event posting when no specific game object is selected.
+    public static JObject ListenerObject = new JObject
+    {
+        {"gameObject", 0}, // Arbitrary ID for the listener object
+        {"name", "Listener"}
+    };
+
     // ── Dependencies ────────────────────────────────────────────
 
     private readonly IWwiseObjectService _objectService;
@@ -102,21 +116,143 @@ public partial class MainWindowViewModel : ViewModelBase
     // ── Right Panel – Header ────────────────────────────────────
 
     /// <summary>
-    /// Display name of the currently selected event (derived from SelectedEventNode).
+    /// Display name of the currently selected object (derived from SelectedEventNode).
+    /// Bound to the header title in the right panel.
     /// </summary>
-    public string EventName => SelectedEventNode?.Name ?? string.Empty;
+    public string SelectedObjectName => SelectedEventNode?.Name ?? string.Empty;
 
-    // Notify EventName when SelectedEventNode changes
+    /// <summary>
+    /// Note / comment text for the currently selected object.
+    /// Displayed below the object name in the header panel.
+    /// </summary>
+    [ObservableProperty]
+    private string _selectedObjectNote = string.Empty;
+
+    /// <summary>
+    /// Collection of all Wwise Events that reference the currently selected object.
+    /// Displayed as playable "block" cards in the header area.
+    ///
+    /// Architecture note:
+    ///   Each <see cref="EventViewModel"/> owns its own PlayCommand.
+    ///   This ViewModel does NOT couple to EventViewModel — it only
+    ///   populates the collection. The actual play callback should be
+    ///   wired via a delegate or mediator pattern when WAAPI integration
+    ///   is implemented.
+    /// </summary>
+    public ObservableCollection<EventViewModel> RelatedEvents { get; } = new();
+
+    // Notify derived properties when SelectedEventNode changes
     partial void OnSelectedEventNodeChanged(EventNodeViewModel? value)
     {
-        OnPropertyChanged(nameof(EventName));
+        OnPropertyChanged(nameof(SelectedObjectName));
         OnPropertyChanged(nameof(HasSelectedEvent));
 
-        // TODO: When an event is selected, load its RTPC and Switch
-        //       dependencies via IWwiseObjectService and populate
-        //       CurrentEventRTPCs / CurrentEventSwitches.
+        // Retrieve the corresponding WwiseObject from the nodeToObjectMap
+        if (value?.SourceNode != null)
+        {
+            WwiseObjectHandler.nodeToObjectMap.TryGetValue(value.SourceNode, out SelectedObject);
 
-        
+            // TODO: Retrieve the object's Note from the WwiseObject.
+            //       When WAAPI note-fetching is implemented, populate
+            //       SelectedObjectNote here. For now, read from the cached model.
+            SelectedObjectNote = SelectedObject?.Notes ?? string.Empty;
+
+            // Load event dependencies asynchronously (fire-and-forget)
+            _ = LoadSelectedEventDependenciesAsync();
+        }
+        else
+        {
+            SelectedObject = null;
+            SelectedObjectNote = string.Empty;
+            RelatedEvents.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Loads related Events, RTPC, and Switch dependencies for the currently
+    /// selected object. Called asynchronously when the selection changes.
+    /// </summary>
+    private async Task LoadSelectedEventDependenciesAsync()
+    {
+        if (SelectedObject == null || WwiseClient.client == null || !WwiseClient.isConnected)
+        {
+            return;
+        }
+
+        try
+        {
+            // Cleanup: Unregister previous game object if applicable
+            if (GameObject != null)
+                await WwiseClient.client.Call("ak.soundengine.unregisterGameObj", new { gameObject = GameObject["gameObject"] });
+
+
+
+            // Query WAAPI for events that reference the selected object
+            var args = new JObject
+            {
+                {"waql", $"$ from type Action where target.id = \"{SelectedObject.Id}\""}
+            };
+
+            var options = new JObject
+            {
+                {"return", new JArray("parent.id", "parent.name")}
+            };
+
+            var result = await WwiseClient.client.Call(
+                ak.wwise.core.@object.get, args, options);
+            SelectedObject.Events = result;
+            // Console.WriteLine($"[MainWindowViewModel] Events for selected object: {result["return"]?.ToString()}");
+
+            // Populate RelatedEvents from the query result
+            RelatedEvents.Clear();
+            var returnArray = result["return"] as JArray;
+            if (returnArray != null)
+            {
+                foreach (var item in returnArray)
+                {
+                    var eventVm = new EventViewModel
+                    {
+                        Id   = item["parent.id"]?.ToString() ?? string.Empty,
+                        Name = item["parent.name"]?.ToString() ?? "(unnamed)"
+                    };
+                    RelatedEvents.Add(eventVm);
+                }
+            }
+
+
+
+
+            // Register a gameobject for event posting
+
+            GameObject = new JObject
+            {
+                {"gameObject", Random.Shared.Next(0, 9999)}, // Random ID for testing
+                {"name", SelectedObject.Name}
+            };
+
+            await WwiseClient.client.Call(ak.soundengine.registerGameObj, GameObject);
+            Console.WriteLine($"[MainWindowViewModel] Registered game object: {GameObject["name"]} (ID: {GameObject["gameObject"]})");
+
+
+
+            // Register the listener object as well (for testing)
+            await WwiseClient.client.Call(ak.soundengine.registerGameObj, ListenerObject);
+
+            var regRelationArgs = new 
+            {
+                emitter = GameObject["gameObject"],
+                listeners = new[] { ListenerObject["gameObject"] }
+            };
+
+            await WwiseClient.client.Call("ak.soundengine.setListeners", regRelationArgs);
+
+            // TODO: Process the result and populate CurrentEventRTPCs / CurrentEventSwitches
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MainWindowViewModel] Failed to load event dependencies: {ex.Message}");
+            SetStatus($"Failed to load dependencies: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -151,26 +287,24 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isConnected;
 
-    // ── Commands ────────────────────────────────────────────────
+    // ── Public Methods ──────────────────────────────────────────
 
     /// <summary>
-    /// Posts the selected event to the Wwise sound engine.
+    /// Updates the bottom status message in a thread-safe manner.
+    /// Safe to call from any thread — dispatches to the UI thread
+    /// when necessary.
     /// </summary>
-    [RelayCommand]
-    private void PlayEvent()
+    /// <param name="message">The status text to display.</param>
+    public void SetStatus(string message)
     {
-        // TODO: Inject an IWwiseSoundEngineService and call
-        //       PostEvent(SelectedEventNode.Id) here.
-    }
-
-    /// <summary>
-    /// Stops all currently playing sounds.
-    /// </summary>
-    [RelayCommand]
-    private void StopEvent()
-    {
-        // TODO: Inject an IWwiseSoundEngineService and call
-        //       StopAll() here.
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            StatusMessage = message;
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(() => StatusMessage = message);
+        }
     }
 
     // ── Mapping Helpers ─────────────────────────────────────────
@@ -185,7 +319,8 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Id       = model.Id,
             Name     = model.Name,
-            IsFolder = model.IsFolder
+            IsFolder = model.IsFolder,
+            SourceNode = model  // Store reference to original model
         };
 
         foreach (var child in model.Children)

@@ -17,6 +17,7 @@ using WwiseSoundCaster.Models;
 /// </summary>
 public static class WwiseObjectHandler
 {
+    public static Dictionary<WwiseEventNode, WwiseObject> nodeToObjectMap = new Dictionary<WwiseEventNode, WwiseObject>();
     // ── Public API ──────────────────────────────────────────────
 
     /// <summary>
@@ -44,7 +45,7 @@ public static class WwiseObjectHandler
 
             var options = new JObject
             {
-                {"return", new JArray("id", "name", "type", "path")}
+                {"return", new JArray("id", "name", "notes", "type", "playbackDuration", "path", "extractEvents")}
             };
 
             var resultJson = await WwiseClient.client.Call(
@@ -138,6 +139,17 @@ public static class WwiseObjectHandler
                 parent.Children.Add(eventNode);
             else
                 roots.Add(eventNode);
+
+            // Map the event node to its corresponding Wwise object for later use.
+            nodeToObjectMap[eventNode] = new WwiseObject
+            {
+                Id       = obj["id"]?.ToString()   ?? string.Empty,
+                Name     = obj["name"]?.ToString() ?? string.Empty,
+                Notes    = obj["notes"]?.ToString() ?? string.Empty,
+                Type     = obj["type"]?.ToString() ?? "Event",
+                Duration = obj["playbackDuration"]?["playbackDurationMax"]?.ToObject<double>() ?? 0.0,
+                Path     = obj["path"]?.ToString() ?? string.Empty
+            };
         }
 
         return roots;
