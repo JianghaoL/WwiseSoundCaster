@@ -220,19 +220,17 @@ public partial class MainWindowViewModel : ViewModelBase
                 }
             }
 
-            // Load RTPC dependencies
-            await LoadRtpcDependenciesAsync();
+
 
             // Register a gameobject for event posting
-
             GameObject = new JObject
             {
                 {"gameObject", Random.Shared.Next(1, 9999)}, // Random ID for testing
                 {"name", SelectedObject.Name}
             };
-
+            Console.WriteLine($"[MainWindowViewModel] Registering game object with WAAPI: {GameObject["gameObject"]}");
             await WwiseClient.client.Call(ak.soundengine.registerGameObj, GameObject);
-            Console.WriteLine($"[MainWindowViewModel] Registered game object: {GameObject["name"]} (ID: {GameObject["gameObject"]})");
+            
 
 
 
@@ -248,6 +246,11 @@ public partial class MainWindowViewModel : ViewModelBase
             await WwiseClient.client.Call("ak.soundengine.setListeners", regRelationArgs);
 
             // TODO: Process the result and populate CurrentEventRTPCs / CurrentEventSwitches
+
+
+
+            // Load RTPC dependencies
+            await LoadRtpcDependenciesAsync();
         }
         catch (Exception ex)
         {

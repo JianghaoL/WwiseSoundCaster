@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,6 +20,10 @@ namespace WwiseSoundCaster.ViewModels;
 public partial class RtpcViewModel : ViewModelBase
 {
     public JObject? RTPC;
+    
+    // Debouncing support to avoid flooding WAAPI during slider drag
+    private CancellationTokenSource? _debounceCts;
+    private const int DebounceDelayMs = 5; // 50ms debounce delay
 
     // ── Display Properties ──────────────────────────────────────
 
@@ -67,7 +72,7 @@ public partial class RtpcViewModel : ViewModelBase
 
         var args = new JObject
         {
-            {"waql", $"$\"{rtpc["id"]}\""},
+            {"waql", $"$\"{RTPC["id"]}\""},
         };
 
         var options = new JObject
@@ -76,7 +81,7 @@ public partial class RtpcViewModel : ViewModelBase
         };
 
         var result = await WwiseClient.client?.Call(ak.wwise.core.@object.get, args, options);
-        Console.WriteLine($"[RtpcViewModel] SetRangeAsync result: {result["return"]?.ToString()}");
+        //Console.WriteLine($"[RtpcViewModel] SetRangeAsync result: {result["return"]?.ToString()}");
         
         // Access the points array: result["return"] is a JArray, so use [0] (int index) not ["0"] (string key)
         var points = result?["return"]?[0]?["@Curve"]?["points"] as JArray;
@@ -137,11 +142,54 @@ public partial class RtpcViewModel : ViewModelBase
             return; // OnCurrentValueChanged will be re-invoked with the clamped value
         }
 
-        // ── WAAPI Integration Point ──
-        // TODO: Trigger WAAPI SetRTPCValue call here.
-        //       Example: await _wwiseService.SetRTPCValueAsync(Id, clamped, gameObjectId);
-        //       The service call should be fire-and-forget or debounced to avoid
-        //       flooding WAAPI during rapid slider movement.
+        // ── WAAPI Integration Point with Debouncing ──
+        // Cancel any pending WAAPI call and schedule a new one
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        
+        // Trigger async WAAPI call in fire-and-forget manner with debouncing
+        _ = SendRtpcValueToWwiseAsync(CurrentValue, _debounceCts.Token);
+    }
+
+    /// <summary>
+    /// Sends the RTPC value change to Wwise via WAAPI with debouncing.
+    /// Called asynchronously when CurrentValue changes.
+    /// </summary>
+    private async Task SendRtpcValueToWwiseAsync(double value, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Debounce delay - wait briefly to see if more changes arrive
+            await Task.Delay(DebounceDelayMs, cancellationToken);
+            
+            // If we get here, no new changes arrived during the delay
+            if (RTPC == null || WwiseClient.client == null || !WwiseClient.isConnected)
+            {
+                return;
+            }
+
+            // Console.WriteLine($"[RtpcViewModel] Sending RTPC value {value} for {Name}");
+            
+            var args = new JObject
+            {
+                {"rtpc", RTPC["id"]},
+                {"value", value},
+                {"gameObject", MainWindowViewModel.GameObject?["gameObject"]}
+            };
+
+            //Console.WriteLine($"[RtpcViewModel] Calling WAAPI GameObjecct: {MainWindowViewModel.GameObject?["gameObject"]} RTPC: {Name}, Value: {value}");
+
+            var result = await WwiseClient.client.Call(ak.soundengine.setRTPCValue, args);
+            Console.WriteLine($"[RtpcViewModel] WAAPI setRTPCValue result: {result}");
+        }
+        catch (TaskCanceledException)
+        {
+            // Debounce was cancelled - this is expected when slider moves rapidly
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[RtpcViewModel] Failed to set RTPC value: {ex.Message}");
+        }
     }
 
     // ── Inline Editing State ────────────────────────────────────
