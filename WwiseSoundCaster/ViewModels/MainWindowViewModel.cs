@@ -159,6 +159,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
             // Load event dependencies asynchronously (fire-and-forget)
             _ = LoadSelectedEventDependenciesAsync();
+            // Load RTPC dependencies
+            _ = LoadRtpcDependenciesAsync();
         }
         else
         {
@@ -249,8 +251,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
 
 
-            // Load RTPC dependencies
-            await LoadRtpcDependenciesAsync();
+        
         }
         catch (Exception ex)
         {
