@@ -177,6 +177,8 @@ public partial class RtpcViewModel : ViewModelBase
                 {"gameObject", MainWindowViewModel.GameObject?["gameObject"]}
             };
 
+            // TODO Fix RTPC linking issue.
+
             //Console.WriteLine($"[RtpcViewModel] Calling WAAPI GameObjecct: {MainWindowViewModel.GameObject?["gameObject"]} RTPC: {Name}, Value: {value}");
 
             var result = await WwiseClient.client.Call(ak.soundengine.setRTPCValue, args);
