@@ -40,10 +40,9 @@ public class WwiseObjectService : IWwiseObjectService
             //       per event (see architecture doc — event dependency extraction).
             return await WwiseObjectHandler.FetchWwiseObjectsAsync();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // TODO: Replace Console with a proper logging abstraction (e.g. ILogger).
-            Console.WriteLine($"[WwiseObjectService] Failed to fetch event hierarchy: {ex.Message}");
+            // TODO: Replace with proper logging abstraction (e.g. ILogger).
             return Array.Empty<WwiseEventNode>();
         }
     }

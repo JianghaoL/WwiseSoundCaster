@@ -78,13 +78,10 @@ public partial class WwiseConnectWindowViewModel : ViewModelBase
         StatusMessage = "Connecting...";
         Status = ConnectionStatus.None;
 
-        // ─────────────────────────────────────────────────────────
         // TODO: Future enhancements:
-        //   • Accept a user-specified URI from a TextBox binding.
-        //   • Add a CancellationToken so the user can abort a slow attempt.
-        //   • After connecting, call RegisterGameObjectAsync() on the
-        //     connection service for playback support.
-        // ─────────────────────────────────────────────────────────
+        //       - Accept a user-specified URI from a TextBox binding
+        //       - Add a CancellationToken so the user can abort a slow attempt
+        //       - After connecting, call RegisterGameObjectAsync() on the connection service
 
         await _connectionService.ConnectAsync();
 

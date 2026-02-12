@@ -87,8 +87,7 @@ public partial class RtpcViewModel : ViewModelBase
         };
 
         var result = await WwiseClient.client?.Call(ak.wwise.core.@object.get, args, options);
-        //Console.WriteLine($"[RtpcViewModel] SetRangeAsync result: {result["return"]?.ToString()}");
-        
+
         // Access the points array: result["return"] is a JArray, so use [0] (int index) not ["0"] (string key)
         var points = result?["return"]?[0]?["@Curve"]?["points"] as JArray;
 
@@ -188,30 +187,23 @@ public partial class RtpcViewModel : ViewModelBase
                 return;
             }
 
-            // Console.WriteLine($"[RtpcViewModel] Sending RTPC value {value} for {Name}");
-            
             var args = new JObject
             {
                 {"rtpc", Name},
-                {"value", value},
-                //{"gameObject", MainWindowViewModel.GameObject?["gameObject"] ?? string.Empty}
+                {"value", value}
             };
 
-            // TODO Fix RTPC linking issue.
-
-            //Console.WriteLine($"[RtpcViewModel] Calling WAAPI GameObjecct: {MainWindowViewModel.GameObject?["gameObject"]} RTPC: {Name}, Value: {value}");
+            // TODO: Fix RTPC game object linking issue.
 
             var result = await WwiseClient.client.Call(ak.soundengine.setRTPCValue, args);
-            
-            // Console.WriteLine($"[RtpcViewModel] WAAPI setRTPCValue result: {result}");
         }
         catch (TaskCanceledException)
         {
             // Debounce was cancelled - this is expected when slider moves rapidly
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"[RtpcViewModel] Failed to set RTPC value: {ex.Message}");
+            // RTPC value update failed - silently ignore to avoid disrupting user interaction
         }
     }
 

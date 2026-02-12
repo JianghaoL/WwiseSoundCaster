@@ -26,20 +26,20 @@ public class WwiseConnectionService : IWwiseConnectionService
     /// <inheritdoc/>
     public async Task ConnectAsync()
     {
-        // TODO: Accept configurable URI (e.g. ws://localhost:8080/waapi)
-        //       and timeout via constructor parameters or method overload.
-        // TODO: After a successful connection, register a default game object
-        //       via ak.soundengine.registerGameObj for playback operations.
+        // TODO: Accept configurable URI (e.g. ws://localhost:8080/waapi) and timeout
+        //       via constructor parameters or method overload.
+        // TODO: After successful connection, register a default game object via
+        //       ak.soundengine.registerGameObj for playback operations.
         await WwiseClient.Connect();
     }
 
     /// <inheritdoc/>
     public Task DisconnectAsync()
     {
-        // TODO: Implement graceful WAAPI disconnect.
-        //   - Unregister game objects
-        //   - Dispose the JsonClient
-        //   - Reset WwiseClient.isConnected
+        // TODO: Implement graceful WAAPI disconnect:
+        //       - Unregister game objects
+        //       - Dispose the JsonClient
+        //       - Reset WwiseClient.isConnected
         return Task.CompletedTask;
     }
 

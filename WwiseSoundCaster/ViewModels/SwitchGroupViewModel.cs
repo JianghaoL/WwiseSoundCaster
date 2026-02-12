@@ -75,10 +75,6 @@ public partial class SwitchGroupViewModel : ViewModelBase
     {
         if (value == null) return;
 
-        Console.WriteLine(
-            $"[SwitchGroupViewModel] Switch changed - Group: {GroupName}, " +
-            $"Selected: {value.Name} (Id: {value.Id})");
-
         // Trigger async WAAPI call in fire-and-forget manner
         _ = SendSwitchChangeToWwiseAsync(value);
     }
@@ -96,8 +92,6 @@ public partial class SwitchGroupViewModel : ViewModelBase
 
         try
         {
-            Console.WriteLine($"[SwitchGroupViewModel] Sending switch change: {GroupName} -> {selectedSwitch.Name}");
-
             var args = new JObject
             {
                 {"switchGroup", GroupName},
@@ -106,11 +100,10 @@ public partial class SwitchGroupViewModel : ViewModelBase
             };
 
             var result = await WwiseClient.client.Call(ak.soundengine.setSwitch, args);
-                Console.WriteLine($"[SwitchGroupViewModel] WAAPI setSwitch result: {result}");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"[SwitchGroupViewModel] Failed to set switch: {ex.Message}");
+            // Switch change failed - silently ignore to avoid disrupting user interaction
         }
     }
 

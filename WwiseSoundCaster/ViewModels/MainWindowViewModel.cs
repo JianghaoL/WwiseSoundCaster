@@ -278,8 +278,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            Console.WriteLine($"[MainWindowViewModel] Selected Object Name: {SelectedObject.Name}");
-
             // Cleanup: Unregister previous game object if applicable
             if (GameObject != null)
                 await WwiseClient.client.Call("ak.soundengine.unregisterGameObj", new { gameObject = GameObject["gameObject"] });
@@ -300,7 +298,6 @@ public partial class MainWindowViewModel : ViewModelBase
             var result = await WwiseClient.client.Call(
                 ak.wwise.core.@object.get, args, options);
             SelectedObject.Events = result;
-            // Console.WriteLine($"[MainWindowViewModel] Events for selected object: {result["return"]?.ToString()}");
 
             // Populate RelatedEvents from the query result
             RelatedEvents.Clear();
@@ -326,13 +323,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 {"gameObject", Random.Shared.Next(1, 9999)}, // Random ID for testing
                 {"name", SelectedObject.Name}
             };
-            // Console.WriteLine($"[MainWindowViewModel] Registering game object with WAAPI: {GameObject["gameObject"]}");
             await WwiseClient.client.Call(ak.soundengine.registerGameObj, GameObject);
-            
 
-
-
-            // Register the listener object as well (for testing)
+            // Register the listener object
             await WwiseClient.client.Call(ak.soundengine.registerGameObj, ListenerObject);
 
             var regRelationArgs = new 
@@ -346,11 +339,9 @@ public partial class MainWindowViewModel : ViewModelBase
             // Load RTPC and Switch dependencies
             await LoadRtpcDependenciesAsync();
             await LoadSwitchDependenciesAsync();
-        
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[MainWindowViewModel] Failed to load event dependencies: {ex.Message}");
             SetStatus($"Failed to load dependencies: {ex.Message}");
         }
     }
@@ -371,19 +362,11 @@ public partial class MainWindowViewModel : ViewModelBase
             // Query WAAPI for all Game Parameters (RTPCs)
             var args = new JObject
             {
-                //{"waql", $"$ \"{SelectedObject.Id}\""}
-
                 { "waql", $"$ from object \"{SelectedObject.Id}\" select @RTPC" }
-
-                //{ "waql", $"$ from object \"{SelectedObject.Id}\" select descendants where type = \"RTPC\"" }
             };
 
             var options = new JObject
             {
-                //{"return", new JArray("id", "name", "@Min", "@Max", "@BindToBuiltInParam")}
-
-                //{"return", new JArray("@RTPC")}
-
                 { "return", new JArray { "id", "@PropertyName", "@ControlInput.name" } }
             };
 
@@ -396,8 +379,6 @@ public partial class MainWindowViewModel : ViewModelBase
                 CurrentEventRTPCs.Clear();
                 return;
             }
-
-            //Console.WriteLine($"[MainWindowViewModel] RTPCs for selected object: {result["return"]?.ToString()}");
 
             // Populate CurrentEventRTPCs from the query result
             CurrentEventRTPCs.Clear();
@@ -413,20 +394,15 @@ public partial class MainWindowViewModel : ViewModelBase
                         Id                  = item["id"]?.ToString() ?? string.Empty,
                         Name                = item["@ControlInput.name"]?.ToString() ?? "(unnamed)",
                         PropertyDisplayName = item["@PropertyName"]?.ToString() ?? string.Empty,
-                        // MinValue            = item["@Min"]?.Value<double>() ?? 0.0,
-                        // MaxValue            = item["@Max"]?.Value<double>() ?? 100.0,
-                        // CurrentValue        = item["@Min"]?.Value<double>() ?? 0.0 // Start at min value
                     };
                     CurrentEventRTPCs.Add(rtpcVm);
                     await rtpcVm.SetRangeAsync(item as JObject);
                 }
             }
-
-            //Console.WriteLine($"[MainWindowViewModel] Loaded {CurrentEventRTPCs.Count} RTPC(s)");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[MainWindowViewModel] Failed to load RTPC dependencies: {ex.Message}");
+            // RTPC loading failed silently - user can still interact with other controls
         }
     }
 
@@ -464,8 +440,6 @@ public partial class MainWindowViewModel : ViewModelBase
                                   ?? "Switch Group";
             var switchContainerId = switchContainerData["id"]?.ToString() ?? string.Empty;
 
-            Console.WriteLine($"[MainWindowViewModel] Resolved SwitchContainer: {switchGroupName}");
-
             // Step 3: Query the children of the Switch Group / State Group
             var stateOptions = await FetchSwitchStatesAsync(switchContainerId);
 
@@ -499,12 +473,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
                 CurrentEventSwitches.Add(switchGroupVm);
             }
-
-            Console.WriteLine($"[MainWindowViewModel] Loaded {CurrentEventSwitches.Count} Switch Group(s)");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[MainWindowViewModel] Failed to load Switch dependencies: {ex.Message}");
+            // Switch loading failed silently - user can still interact with other controls
         }
     }
 
@@ -574,8 +546,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         var result = await WwiseClient.client.Call(
             ak.wwise.core.@object.get, args, options);
-
-        Console.WriteLine($"[MainWindowViewModel] Switch states for container: {result["return"]?.ToString()}");
 
         return result["return"] as JArray;
     }

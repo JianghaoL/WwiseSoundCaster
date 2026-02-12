@@ -59,13 +59,11 @@ public partial class EventViewModel : ViewModelBase
 
         try
         {
-
             var args = new JObject
             {
                 {"event", Name},
                 {"gameObject", MainWindowViewModel.GameObject["gameObject"]}
             };
-            Console.WriteLine($"[EventViewModel] Playing event '{Name}' on game object ID: {MainWindowViewModel.GameObject["gameObject"]}");
             await WwiseClient.client?.Call(ak.soundengine.postEvent, args);
         }
         catch (System.Exception ex)

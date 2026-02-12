@@ -87,10 +87,9 @@ public static class WwiseObjectHandler
 
             return BuildHierarchy(soundObjects, intermediateMap);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // TODO: Replace Console with ILogger when a logging framework is added.
-            Console.WriteLine($"[WwiseObjectHandler] Fetch failed: {ex.Message}");
+            // TODO: Replace with proper logging when a logging framework is added.
             return Array.Empty<WwiseEventNode>();
         }
     }
@@ -139,10 +138,9 @@ public static class WwiseObjectHandler
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Non-fatal: BuildHierarchy will fall back to Folder for unknown types.
-            Console.WriteLine($"[WwiseObjectHandler] Failed to fetch intermediate types: {ex.Message}");
         }
 
         return map;
