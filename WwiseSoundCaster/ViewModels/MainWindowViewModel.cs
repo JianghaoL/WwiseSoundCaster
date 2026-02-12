@@ -43,6 +43,28 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IWwiseObjectService _objectService;
 
     // ── Hierarchy Backing Store ─────────────────────────────────
+    //
+    // Three-tier hierarchy architecture (non-destructive pipeline):
+    //
+    //   _allEventTreeNodes   (FullHierarchy)
+    //       │  Immutable snapshot of the entire Wwise project.
+    //       │  NEVER modified after initial load / refresh.
+    //       ▼
+    //   _filteredHierarchy    (FilteredHierarchy)
+    //       │  Result of applying HideFactoryFolders.
+    //       │  Rebuilt only when the toggle or source data changes.
+    //       ▼
+    //   EventTreeNodes        (DisplayHierarchy)
+    //       Bound to the TreeView. Result of applying the
+    //       keyword search on FilteredHierarchy.
+    //
+    // Why preserve all three?
+    //   • Toggling HideFactoryFolders does not require re-fetching
+    //     from Wwise (derives from FullHierarchy).
+    //   • Changing the search keyword does not require re-filtering
+    //     factory folders (derives from FilteredHierarchy).
+    //   • No original data is ever mutated.
+    // ────────────────────────────────────────────────────────────
 
     /// <summary>
     /// The complete, unfiltered hierarchy loaded from the Wwise project.
@@ -50,6 +72,14 @@ public partial class MainWindowViewModel : ViewModelBase
     /// never loses data — filtering always derives from this list.
     /// </summary>
     private List<EventNodeViewModel> _allEventTreeNodes = new();
+
+    /// <summary>
+    /// Intermediate hierarchy after applying the
+    /// <see cref="HideFactoryFolders"/> filter to <see cref="_allEventTreeNodes"/>.
+    /// Search operates on this collection — never on the full hierarchy
+    /// directly — so that hidden factory folders are excluded from results.
+    /// </summary>
+    private List<EventNodeViewModel> _filteredHierarchy = new();
 
     // ── Constructor ─────────────────────────────────────────────
 
@@ -139,10 +169,23 @@ public partial class MainWindowViewModel : ViewModelBase
     /// Called automatically by the source generator when
     /// <see cref="HideFactoryFolders"/> changes.
     /// Re-derives the filtered hierarchy without reloading from Wwise.
+    /// Triggers: FullHierarchy → FilteredHierarchy → DisplayHierarchy.
     /// </summary>
     partial void OnHideFactoryFoldersChanged(bool value)
     {
         ApplyHierarchyFilter();
+    }
+
+    /// <summary>
+    /// Called automatically by the source generator when
+    /// <see cref="SearchKeywords"/> changes.
+    /// Re-derives DisplayHierarchy from the already-filtered hierarchy,
+    /// avoiding redundant factory-folder processing.
+    /// Triggers: FilteredHierarchy → DisplayHierarchy only.
+    /// </summary>
+    partial void OnSearchKeywordsChanged(string value)
+    {
+        ApplySearch();
     }
 
     // ── Right Panel – Header ────────────────────────────────────
@@ -634,28 +677,140 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Derives the displayed <see cref="EventTreeNodes"/> from the
-    /// preserved <see cref="_allEventTreeNodes"/> based on the current
-    /// <see cref="HideFactoryFolders"/> setting.
+    /// Step 1 of the display pipeline.
+    /// Derives <see cref="_filteredHierarchy"/> from the preserved
+    /// <see cref="_allEventTreeNodes"/> based on the current
+    /// <see cref="HideFactoryFolders"/> setting, then calls
+    /// <see cref="ApplySearch"/> to produce the final display tree.
     ///
     /// This method NEVER modifies the original hierarchy — it only
-    /// controls what the TreeView shows. Safe to call repeatedly.
-    ///
-    /// TODO: Extend to also apply <see cref="SearchKeywords"/> filtering
-    ///       when text-based search is implemented.
+    /// builds a new intermediate list. Safe to call repeatedly.
     /// </summary>
     private void ApplyHierarchyFilter()
     {
-        EventTreeNodes.Clear();
+        _filteredHierarchy.Clear();
 
         foreach (var node in _allEventTreeNodes)
         {
             var filtered = FilterNode(node);
             if (filtered != null)
             {
-                EventTreeNodes.Add(filtered);
+                _filteredHierarchy.Add(filtered);
             }
         }
+
+        // Chain into search — the display collection derives from
+        // the filtered hierarchy, not from the full hierarchy.
+        ApplySearch();
+    }
+
+    // ── Search Logic ────────────────────────────────────────────
+    //
+    // Search operates on FilteredHierarchy (post-HideFactoryFolders),
+    // so results never include nodes that the user chose to hide.
+    //
+    // The recursion preserves hierarchy structure:
+    //   • A matching leaf appears under its parent path.
+    //   • A matching folder appears even if no children match.
+    //   • Non-matching branches are pruned entirely.
+    //   • The original FilteredHierarchy nodes are never mutated —
+    //     cloned nodes are created for every search result.
+    // ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Step 2 of the display pipeline.
+    /// Applies the current <see cref="SearchKeywords"/> against
+    /// <see cref="_filteredHierarchy"/> and populates the bound
+    /// <see cref="EventTreeNodes"/> (DisplayHierarchy).
+    ///
+    /// Performance optimisation: when the keyword is empty, the
+    /// filtered hierarchy is copied directly without recursion,
+    /// avoiding unnecessary allocations for the common idle case.
+    /// </summary>
+    private void ApplySearch()
+    {
+        EventTreeNodes.Clear();
+
+        var keyword = SearchKeywords?.Trim() ?? string.Empty;
+
+        // ── Fast path: no search keyword — display FilteredHierarchy as-is.
+        if (string.IsNullOrEmpty(keyword))
+        {
+            foreach (var node in _filteredHierarchy)
+            {
+                EventTreeNodes.Add(node);
+            }
+            return;
+        }
+
+        // ── Search path: recursively match and build a pruned tree.
+        foreach (var node in _filteredHierarchy)
+        {
+            var matched = SearchNode(node, keyword);
+            if (matched != null)
+            {
+                EventTreeNodes.Add(matched);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Recursively searches a single node and its subtree for the
+    /// given keyword.  Returns a shallow-cloned node containing only
+    /// the matching branches, or <c>null</c> if nothing matches.
+    ///
+    /// Rules:
+    ///   1. If the node's <see cref="EventNodeViewModel.Name"/> contains
+    ///      <paramref name="keyword"/> (case-insensitive substring match),
+    ///      it is included — along with any children that also match.
+    ///   2. If the node itself does NOT match but one or more
+    ///      descendants do, it is included as a structural ancestor
+    ///      with only the matching child branches attached.
+    ///   3. If neither the node nor any descendant matches,
+    ///      <c>null</c> is returned and the branch is pruned.
+    ///
+    /// The original node and its Children collection are never modified.
+    /// </summary>
+    /// <param name="node">The source node to evaluate.</param>
+    /// <param name="keyword">Non-empty, trimmed search keyword.</param>
+    /// <returns>A cloned subtree of matches, or <c>null</c>.</returns>
+    private static EventNodeViewModel? SearchNode(EventNodeViewModel node, string keyword)
+    {
+        bool selfMatches = node.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+
+        // Recursively collect matching children regardless of self-match.
+        // This ensures that even when a parent matches, only relevant
+        // children propagate — keeping the result tree focused.
+        var matchingChildren = new List<EventNodeViewModel>();
+        foreach (var child in node.Children)
+        {
+            var result = SearchNode(child, keyword);
+            if (result != null)
+            {
+                matchingChildren.Add(result);
+            }
+        }
+
+        // Include this node if it matches or if any descendant matches.
+        if (selfMatches || matchingChildren.Count > 0)
+        {
+            var clone = new EventNodeViewModel
+            {
+                Id         = node.Id,
+                Name       = node.Name,
+                NodeType   = node.NodeType,
+                SourceNode = node.SourceNode
+            };
+
+            foreach (var child in matchingChildren)
+            {
+                clone.Children.Add(child);
+            }
+
+            return clone;
+        }
+
+        return null;
     }
 
     /// <summary>
