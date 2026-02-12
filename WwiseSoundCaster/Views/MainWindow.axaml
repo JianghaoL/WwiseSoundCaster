@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:WwiseSoundCaster.ViewModels"
+        xmlns:models="using:WwiseSoundCaster.Models"
         xmlns:beh="using:WwiseSoundCaster.Behaviors"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -46,6 +47,14 @@
                 </Grid>
             </Border>
         </DataTemplate>
+
+        <!-- SwitchOptionModel DataTemplate for ComboBox items -->
+        <DataTemplate x:Key="SwitchOptionTemplate"
+                      x:DataType="models:SwitchOptionModel">
+            <TextBlock Text="{Binding Name}"
+                       Foreground="#DCDCDC"
+                       FontSize="12"/>
+        </DataTemplate>
     </Window.Resources>
 
     <!-- Design-time: x:DataType above is sufficient for compiled bindings.
@@ -87,10 +96,13 @@
                           Margin="4,0,4,4"
                           Background="Transparent">
                     <TreeView.ItemTemplate>
-                        <TreeDataTemplate ItemsSource="{Binding Children}"
+                        <!-- Only Folder nodes are expandable — TreeChildren returns
+                             the real Children for folders and an empty collection
+                             for Containers and Objects. -->
+                        <TreeDataTemplate ItemsSource="{Binding TreeChildren}"
                                           x:DataType="vm:EventNodeViewModel">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <!-- Folder icon (visible when IsFolder=true) -->
+                                <!-- Folder icon (visible when NodeType == Folder) -->
                                 <PathIcon Width="14" Height="14"
                                           Foreground="#FFD54F"
                                           IsVisible="{Binding IsFolder}">
@@ -98,15 +110,23 @@
                                         <PathGeometry Figures="M2,4 L2,14 L14,14 L14,6 L8,6 L6,4 Z"/>
                                     </PathIcon.Data>
                                 </PathIcon>
-                                <!-- Event icon (visible when IsFolder=false) -->
+                                <!-- Container icon (visible when NodeType == Container) -->
+                                <PathIcon Width="14" Height="14"
+                                          Foreground="#64B5F6"
+                                          IsVisible="{Binding IsContainer}">
+                                    <PathIcon.Data>
+                                        <PathGeometry Figures="M2,3 L14,3 L14,13 L2,13 Z M2,6 L14,6"/>
+                                    </PathIcon.Data>
+                                </PathIcon>
+                                <!-- Object / Sound icon (visible when NodeType == Object) -->
                                 <PathIcon Width="14" Height="14"
                                           Foreground="#9E9E9E"
-                                          IsVisible="{Binding !IsFolder}">
+                                          IsVisible="{Binding IsObject}">
                                     <PathIcon.Data>
                                         <PathGeometry Figures="M3,2 L13,8 L3,14 Z"/>
                                     </PathIcon.Data>
                                 </PathIcon>
-                                <!-- Event / folder name -->
+                                <!-- Node name -->
                                 <TextBlock Text="{Binding Name}"
                                            VerticalAlignment="Center"
                                            Foreground="#DCDCDC"/>
@@ -260,6 +280,22 @@
                                             </TextBox.KeyBindings>
                                         </TextBox>
                                     </Grid>
+                                    <!-- Min / Max range labels beneath the slider -->
+                                    <Grid ColumnDefinitions="*,64"
+                                          Margin="0,4,0,0">
+                                        <!-- Left-aligned min value, right-aligned max value under the slider track -->
+                                        <Grid Grid.Column="0"
+                                              Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding MinValue, StringFormat={}{0:F1}}"
+                                                       FontSize="10"
+                                                       Foreground="#9A9A9A"
+                                                       HorizontalAlignment="Left"/>
+                                            <TextBlock Text="{Binding MaxValue, StringFormat={}{0:F1}}"
+                                                       FontSize="10"
+                                                       Foreground="#9A9A9A"
+                                                       HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </Grid>
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -276,6 +312,10 @@
 
             <!-- ═════════════════════════════════════════════════
                  ROW 2 – Switch Controls
+                 Each SwitchGroupViewModel renders as a styled card
+                 with a group name label and a ComboBox of options.
+                 Multiple groups are handled automatically via
+                 ItemsControl + ObservableCollection.
                  ═════════════════════════════════════════════════ -->
             <Border Grid.Row="2"
                     Background="#2D2D30"
@@ -299,20 +339,37 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:SwitchGroupViewModel">
-                                <StackPanel Margin="4,4">
-                                    <!-- Group name label -->
-                                    <TextBlock Text="{Binding GroupName}"
-                                               Foreground="#BDBDBD"
-                                               FontSize="12"
-                                               Margin="0,0,0,4"/>
-                                    <!-- State selector -->
-                                    <ComboBox ItemsSource="{Binding AvailableStates}"
-                                              SelectedItem="{Binding SelectedState, Mode=TwoWay}"
-                                              HorizontalAlignment="Stretch"
-                                              Background="#3C3C3C"
-                                              Foreground="#DCDCDC"
-                                              BorderBrush="#555555"/>
-                                </StackPanel>
+                                <!-- Per-group card: subtle background,
+                                     rounded corners, clean spacing -->
+                                <Border Background="#333337"
+                                        CornerRadius="5"
+                                        Padding="10,8"
+                                        Margin="4,4">
+                                    <StackPanel Spacing="6">
+                                        <!-- Group name label -->
+                                        <TextBlock Text="{Binding GroupName}"
+                                                   Foreground="#BDBDBD"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"/>
+
+                                        <!-- Switch state selector (ComboBox)
+                                             • ItemsSource → AvailableSwitches (SwitchOptionModel collection)
+                                             • ItemTemplate → displays SwitchOptionModel.Name
+                                             • SelectedItem → TwoWay to SelectedSwitch
+                                             • To later call WAAPI SetSwitch, use:
+                                               switchGroupVm.GetSelectedSwitchId()
+                                               from the service layer. -->
+                                        <ComboBox ItemsSource="{Binding AvailableSwitches}"
+                                                  SelectedItem="{Binding SelectedSwitch, Mode=TwoWay}"
+                                                  ItemTemplate="{StaticResource SwitchOptionTemplate}"
+                                                  HorizontalAlignment="Stretch"
+                                                  Background="#3C3C3C"
+                                                  Foreground="#DCDCDC"
+                                                  BorderBrush="#555555"
+                                                  CornerRadius="4"
+                                                  Padding="6,4"/>
+                                    </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

@@ -147,20 +147,32 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(SelectedObjectName));
         OnPropertyChanged(nameof(HasSelectedEvent));
 
-        // Retrieve the corresponding WwiseObject from the nodeToObjectMap
-        if (value?.SourceNode != null)
+        // ── Folder selected: do NOT populate the right-side panel. ──
+        // Folders are purely organisational — selecting one clears
+        // any previously displayed object data.
+        if (value == null || value.NodeType == WwiseNodeType.Folder)
+        {
+            SelectedObject = null;
+            SelectedObjectNote = string.Empty;
+            RelatedEvents.Clear();
+            CurrentEventRTPCs.Clear();
+            CurrentEventSwitches.Clear();
+            return;
+        }
+
+        // ── Object or Container selected: populate right panel. ──
+        // Containers are treated like Objects for now.
+        // TODO: Implement container-specific right-panel logic
+        //       (e.g. display contained sounds, randomisation weights,
+        //       switch assignments) when container browsing is added.
+        if (value.SourceNode != null)
         {
             WwiseObjectHandler.nodeToObjectMap.TryGetValue(value.SourceNode, out SelectedObject);
 
             SelectedObjectNote = SelectedObject?.Notes ?? string.Empty;
-            // TODO: Retrieve the object's Note from the WwiseObject.
-            //       When WAAPI note-fetching is implemented, populate
-            //       SelectedObjectNote here. For now, read from the cached model.
 
             // Load event dependencies asynchronously (fire-and-forget)
             _ = LoadSelectedEventDependenciesAsync();
-            // Load RTPC dependencies
-            _ = LoadRtpcDependenciesAsync();
         }
         else
         {
@@ -168,6 +180,7 @@ public partial class MainWindowViewModel : ViewModelBase
             SelectedObjectNote = string.Empty;
             RelatedEvents.Clear();
             CurrentEventRTPCs.Clear();
+            CurrentEventSwitches.Clear();
         }
     }
 
@@ -184,6 +197,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
+            Console.WriteLine($"[MainWindowViewModel] Selected Object Name: {SelectedObject.Name}");
+
             // Cleanup: Unregister previous game object if applicable
             if (GameObject != null)
                 await WwiseClient.client.Call("ak.soundengine.unregisterGameObj", new { gameObject = GameObject["gameObject"] });
@@ -230,7 +245,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 {"gameObject", Random.Shared.Next(1, 9999)}, // Random ID for testing
                 {"name", SelectedObject.Name}
             };
-            Console.WriteLine($"[MainWindowViewModel] Registering game object with WAAPI: {GameObject["gameObject"]}");
+            // Console.WriteLine($"[MainWindowViewModel] Registering game object with WAAPI: {GameObject["gameObject"]}");
             await WwiseClient.client.Call(ak.soundengine.registerGameObj, GameObject);
             
 
@@ -247,10 +262,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
             await WwiseClient.client.Call("ak.soundengine.setListeners", regRelationArgs);
 
-            // TODO: Process the result and populate CurrentEventRTPCs / CurrentEventSwitches
-
-
-
+            // Load RTPC and Switch dependencies
+            await LoadRtpcDependenciesAsync();
+            await LoadSwitchDependenciesAsync();
         
         }
         catch (Exception ex)
@@ -296,7 +310,13 @@ public partial class MainWindowViewModel : ViewModelBase
             var result = await WwiseClient.client.Call(
                 ak.wwise.core.@object.get, args, options);
 
-            Console.WriteLine($"[MainWindowViewModel] RTPCs for selected object: {result["return"]?.ToString()}");
+            if (result["return"] == null || result["return"]?.Count() == 0)
+            {
+                CurrentEventRTPCs.Clear();
+                return;
+            }
+
+            //Console.WriteLine($"[MainWindowViewModel] RTPCs for selected object: {result["return"]?.ToString()}");
 
             // Populate CurrentEventRTPCs from the query result
             CurrentEventRTPCs.Clear();
@@ -321,7 +341,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 }
             }
 
-            Console.WriteLine($"[MainWindowViewModel] Loaded {CurrentEventRTPCs.Count} RTPC(s)");
+            //Console.WriteLine($"[MainWindowViewModel] Loaded {CurrentEventRTPCs.Count} RTPC(s)");
         }
         catch (Exception ex)
         {
@@ -330,9 +350,108 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// True when an event is selected — used to toggle right-panel visibility.
+    /// Loads Switch Group dependencies for the currently selected object.
+    /// Queries WAAPI for all Switch Groups and their states, then populates
+    /// the CurrentEventSwitches collection.
     /// </summary>
-    public bool HasSelectedEvent => SelectedEventNode is not null;
+    private async Task LoadSwitchDependenciesAsync()
+    {
+        if (SelectedObject == null || WwiseClient.client == null || !WwiseClient.isConnected)
+        {
+            return;
+        }
+
+        try
+        {
+            // Query WAAPI for Switch Groups referenced by this object
+            var args = new JObject
+            {
+                {"waql", $"$ from object \"{SelectedObject.Id}\" select ancestors where type = \"SwitchContainer\""}
+            };
+
+            var options = new JObject
+            {
+                {"return", new JArray("name", "@SwitchGroupOrStateGroup.name", "id")}
+            };
+
+            var result = await WwiseClient.client.Call(
+                ak.wwise.core.@object.get, args, options);
+
+            Console.WriteLine($"[MainWindowViewModel] Switches for selected object: {result["return"]?.ToString()}");
+
+            if (result["return"]?.Count() <= 0)
+            {
+                CurrentEventSwitches.Clear();
+                return;
+            }
+
+            // Capture the Switch Group/State Group name and the SwitchContainer id
+            var switchGroupName = result["return"]?[0]?["@SwitchGroupOrStateGroup.name"]?.ToString()
+                                  ?? result["return"]?[0]?["name"]?.ToString()
+                                  ?? "Switch Group";
+            var switchContainerId = result["return"]?[0]?["id"]?.ToString() ?? string.Empty;
+
+            Console.WriteLine($"[MainWindowViewModel] {switchGroupName}");
+            args = new JObject
+            {
+                {"waql", $"$ \"{result["return"]?[0]?["id"]}\" select @SwitchGroupOrStateGroup select children"}
+            };
+
+            options = new JObject
+            {
+                {"return", new JArray("id", "name", "type")}
+            };
+
+            result = await WwiseClient.client.Call(
+                ak.wwise.core.@object.get, args, options);
+
+            Console.WriteLine($"[MainWindowViewModel] Switch states for group: {result["return"]?.ToString()}");
+
+            CurrentEventSwitches.Clear();
+            var switchReturnArray = result["return"] as JArray;
+            if (switchReturnArray != null && switchReturnArray.Count > 0)
+            {
+                var switchGroupVm = new SwitchGroupViewModel
+                {
+                    Id        = switchContainerId,
+                    GroupName = switchGroupName
+                };
+
+                foreach (var item in switchReturnArray)
+                {
+                    var option = new SwitchOptionModel
+                    {
+                        Id   = item["id"]?.ToString()   ?? string.Empty,
+                        Name = item["name"]?.ToString() ?? "(unnamed)",
+                        Type = item["type"]?.ToString() ?? string.Empty
+                    };
+                    switchGroupVm.AvailableSwitches.Add(option);
+                }
+
+                // Auto-select the first option so the ComboBox is never empty
+                if (switchGroupVm.AvailableSwitches.Count > 0)
+                {
+                    switchGroupVm.SelectedSwitch = switchGroupVm.AvailableSwitches[0];
+                }
+
+                CurrentEventSwitches.Add(switchGroupVm);
+            }
+
+            Console.WriteLine($"[MainWindowViewModel] Loaded {CurrentEventSwitches.Count} Switch Group(s)");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MainWindowViewModel] Failed to load Switch dependencies: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// True when a non-folder node is selected — used to toggle right-panel visibility.
+    /// Folders are organisational only and do NOT show the right-side control panel.
+    /// </summary>
+    public bool HasSelectedEvent =>
+        SelectedEventNode is not null
+        && SelectedEventNode.NodeType != WwiseNodeType.Folder;
 
     // ── Right Panel – RTPC & Switch Collections ─────────────────
 
@@ -386,14 +505,18 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>
     /// Recursively maps a <see cref="WwiseEventNode"/> data model to an
     /// <see cref="EventNodeViewModel"/> for tree display.
+    ///
+    /// All children are mapped regardless of node type so that the
+    /// full hierarchy is preserved in the ViewModel. The TreeView
+    /// only expands Folder nodes via <see cref="EventNodeViewModel.TreeChildren"/>.
     /// </summary>
     private static EventNodeViewModel MapToViewModel(WwiseEventNode model)
     {
         var vm = new EventNodeViewModel
         {
-            Id       = model.Id,
-            Name     = model.Name,
-            IsFolder = model.IsFolder,
+            Id         = model.Id,
+            Name       = model.Name,
+            NodeType   = model.NodeType,
             SourceNode = model  // Store reference to original model
         };
 
@@ -406,7 +529,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Counts the total number of leaf (non-folder) nodes across the hierarchy.
+    /// Counts the total number of leaf Object nodes (Sounds) across the hierarchy.
     /// Used for the status message after loading.
     /// </summary>
     private static int CountLeafNodes(System.Collections.Generic.IEnumerable<WwiseEventNode> nodes)
@@ -414,7 +537,7 @@ public partial class MainWindowViewModel : ViewModelBase
         int count = 0;
         foreach (var node in nodes)
         {
-            if (!node.IsFolder)
+            if (node.NodeType == WwiseNodeType.Object)
                 count++;
             count += CountLeafNodes(node.Children);
         }

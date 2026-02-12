@@ -23,7 +23,7 @@ public partial class RtpcViewModel : ViewModelBase
     
     // Debouncing support to avoid flooding WAAPI during slider drag
     private CancellationTokenSource? _debounceCts;
-    private const int DebounceDelayMs = 5; // 50ms debounce delay
+    private const int DebounceDelayMs = 5; // 5ms debounce delay
 
     // ── Display Properties ──────────────────────────────────────
 
@@ -109,7 +109,19 @@ public partial class RtpcViewModel : ViewModelBase
         MinValue = min;
         MaxValue = max;
 
-        CurrentValue = min; // Initialize to min or some default value within the range
+        CurrentValue = min + (max - min) / 2; // Initialize to min or some default value within the range
+
+
+        args = new JObject
+            {
+                {"rtpc", Name},
+                {"value", min + (max - min) / 2},
+                //{"gameObject", MainWindowViewModel.GameObject?["gameObject"]}
+            };
+
+            //Console.WriteLine($"[RtpcViewModel] Calling WAAPI GameObjecct: {MainWindowViewModel.GameObject?["gameObject"]} RTPC: {Name}, Value: {value}");
+
+        result = await WwiseClient.client.Call(ak.soundengine.setRTPCValue, args);
     }
 
 
@@ -172,9 +184,9 @@ public partial class RtpcViewModel : ViewModelBase
             
             var args = new JObject
             {
-                {"rtpc", RTPC["id"]},
+                {"rtpc", Name},
                 {"value", value},
-                {"gameObject", MainWindowViewModel.GameObject?["gameObject"]}
+                //{"gameObject", MainWindowViewModel.GameObject?["gameObject"] ?? string.Empty}
             };
 
             // TODO Fix RTPC linking issue.
@@ -182,7 +194,8 @@ public partial class RtpcViewModel : ViewModelBase
             //Console.WriteLine($"[RtpcViewModel] Calling WAAPI GameObjecct: {MainWindowViewModel.GameObject?["gameObject"]} RTPC: {Name}, Value: {value}");
 
             var result = await WwiseClient.client.Call(ak.soundengine.setRTPCValue, args);
-            Console.WriteLine($"[RtpcViewModel] WAAPI setRTPCValue result: {result}");
+            
+            // Console.WriteLine($"[RtpcViewModel] WAAPI setRTPCValue result: {result}");
         }
         catch (TaskCanceledException)
         {
