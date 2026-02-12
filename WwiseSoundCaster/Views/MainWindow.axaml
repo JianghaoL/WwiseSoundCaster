@@ -78,17 +78,40 @@
                 Margin="0">
             <DockPanel Margin="0">
 
-                <!-- Search Bar (top) -->
-                <TextBox DockPanel.Dock="Top"
-                         Watermark="Search events..."
-                         Text="{Binding SearchKeywords, Mode=TwoWay}"
-                         Margin="8"
-                         Padding="8,6"
-                         Background="#3C3C3C"
-                         Foreground="#CCCCCC"
-                         BorderBrush="#555555"
-                         BorderThickness="1"
-                         CornerRadius="4"/>
+                <!-- Search Bar + Hide Factory Folders (top) -->
+                <StackPanel DockPanel.Dock="Top"
+                            Margin="8"
+                            Spacing="6">
+                    <TextBox Watermark="Search events..."
+                             Text="{Binding SearchKeywords, Mode=TwoWay}"
+                             Padding="8,6"
+                             Background="#3C3C3C"
+                             Foreground="#CCCCCC"
+                             BorderBrush="#555555"
+                             BorderThickness="1"
+                             CornerRadius="4"/>
+
+                    <CheckBox IsChecked="{Binding HideFactoryFolders, Mode=TwoWay}"
+                              Content="Hide Factory Folders"
+                              Foreground="#9E9E9E"
+                              FontSize="12"
+                              ToolTip.Tip="If checked, factory folders will be hidden from the hierarchy."
+                              Margin="2,0,0,0"/>
+                </StackPanel>
+
+                <!-- Refresh Project button (bottom) -->
+                <Button DockPanel.Dock="Bottom"
+                        Content="Refresh Project"
+                        Command="{Binding RefreshProjectCommand}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Margin="8,4,8,8"
+                        Padding="8,6"
+                        FontSize="12"
+                        Foreground="#B0B0B0"
+                        Background="#333337"
+                        CornerRadius="4"
+                        Cursor="Hand"/>
 
                 <!-- Event TreeView (fill remaining space) -->
                 <TreeView ItemsSource="{Binding EventTreeNodes}"

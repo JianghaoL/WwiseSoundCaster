@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -41,6 +42,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private readonly IWwiseObjectService _objectService;
 
+    // ── Hierarchy Backing Store ─────────────────────────────────
+
+    /// <summary>
+    /// The complete, unfiltered hierarchy loaded from the Wwise project.
+    /// Preserved intact so that toggling <see cref="HideFactoryFolders"/>
+    /// never loses data — filtering always derives from this list.
+    /// </summary>
+    private List<EventNodeViewModel> _allEventTreeNodes = new();
+
     // ── Constructor ─────────────────────────────────────────────
 
     public MainWindowViewModel(IWwiseObjectService objectService)
@@ -76,11 +86,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var nodes = await _objectService.FetchEventHierarchyAsync();
 
-            EventTreeNodes.Clear();
+            // Store the full hierarchy for future re-filtering.
+            _allEventTreeNodes.Clear();
             foreach (var node in nodes)
             {
-                EventTreeNodes.Add(MapToViewModel(node));
+                _allEventTreeNodes.Add(MapToViewModel(node));
             }
+
+            // Push the (potentially filtered) hierarchy into the bound collection.
+            ApplyHierarchyFilter();
 
             var eventCount = CountLeafNodes(nodes);
             StatusMessage = eventCount > 0
@@ -112,6 +126,24 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     private string _searchKeywords = string.Empty;
+
+    /// <summary>
+    /// When <c>true</c>, folder nodes whose name contains "factory"
+    /// (case-insensitive) are excluded from the displayed hierarchy.
+    /// The original data is preserved in <see cref="_allEventTreeNodes"/>.
+    /// </summary>
+    [ObservableProperty]
+    private bool _hideFactoryFolders;
+
+    /// <summary>
+    /// Called automatically by the source generator when
+    /// <see cref="HideFactoryFolders"/> changes.
+    /// Re-derives the filtered hierarchy without reloading from Wwise.
+    /// </summary>
+    partial void OnHideFactoryFoldersChanged(bool value)
+    {
+        ApplyHierarchyFilter();
+    }
 
     // ── Right Panel – Header ────────────────────────────────────
 
@@ -558,6 +590,116 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Dispatcher.UIThread.Post(() => StatusMessage = message);
         }
+    }
+
+    // ── Refresh Command ─────────────────────────────────────────
+
+    /// <summary>
+    /// Reloads the entire Wwise project hierarchy from the connected
+    /// project and re-applies the current filter state.
+    /// Bound to the "Refresh Project" button in the left panel.
+    /// </summary>
+    [RelayCommand]
+    private async Task RefreshProjectAsync()
+    {
+        await ReloadProjectAsync();
+    }
+
+    // ── Reload / Filter Logic ───────────────────────────────────
+
+    /// <summary>
+    /// Reloads project data from the Wwise session via the injected
+    /// <see cref="IWwiseObjectService"/> and rebuilds the hierarchy.
+    /// Re-applies <see cref="HideFactoryFolders"/> filter afterward.
+    ///
+    /// Fully async — does not block the UI thread.
+    /// TODO: Add cancellation token support for long-running reloads.
+    /// TODO: Show a loading indicator in the TreeView during reload.
+    /// </summary>
+    private async Task ReloadProjectAsync()
+    {
+        try
+        {
+            StatusMessage = "Refreshing project...";
+
+            // Clear current selection to avoid stale right-panel state.
+            SelectedEventNode = null;
+
+            await LoadEventTreeAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Refresh failed: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Derives the displayed <see cref="EventTreeNodes"/> from the
+    /// preserved <see cref="_allEventTreeNodes"/> based on the current
+    /// <see cref="HideFactoryFolders"/> setting.
+    ///
+    /// This method NEVER modifies the original hierarchy — it only
+    /// controls what the TreeView shows. Safe to call repeatedly.
+    ///
+    /// TODO: Extend to also apply <see cref="SearchKeywords"/> filtering
+    ///       when text-based search is implemented.
+    /// </summary>
+    private void ApplyHierarchyFilter()
+    {
+        EventTreeNodes.Clear();
+
+        foreach (var node in _allEventTreeNodes)
+        {
+            var filtered = FilterNode(node);
+            if (filtered != null)
+            {
+                EventTreeNodes.Add(filtered);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Recursively filters a single node and its subtree.
+    /// Returns <c>null</c> if the node (and all descendants) should be
+    /// excluded entirely; otherwise returns a shallow clone with
+    /// only the surviving children attached.
+    ///
+    /// Filter rules:
+    ///   • When <see cref="HideFactoryFolders"/> is <c>true</c>,
+    ///     any <b>Folder</b> node whose name contains "factory"
+    ///     (case-insensitive) — and its entire subtree — is removed.
+    ///   • Non-folder nodes are always kept.
+    /// </summary>
+    private EventNodeViewModel? FilterNode(EventNodeViewModel node)
+    {
+        // Check if this *folder* should be hidden.
+        if (HideFactoryFolders
+            && node.NodeType == WwiseNodeType.Folder
+            && node.Name.Contains("factory", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        // Clone the node (shallow) so the original stays intact.
+        var clone = new EventNodeViewModel
+        {
+            Id         = node.Id,
+            Name       = node.Name,
+            NodeType   = node.NodeType,
+            SourceNode = node.SourceNode
+        };
+
+        // Recursively filter children.
+        foreach (var child in node.Children)
+        {
+            var filteredChild = FilterNode(child);
+            if (filteredChild != null)
+            {
+                clone.Children.Add(filteredChild);
+            }
+        }
+
+        return clone;
     }
 
     // ── Mapping Helpers ─────────────────────────────────────────

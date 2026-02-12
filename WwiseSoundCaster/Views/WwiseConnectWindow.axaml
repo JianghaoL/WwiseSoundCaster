@@ -4,15 +4,14 @@
         xmlns:conv="using:WwiseSoundCaster.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="320"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="300"
         x:Class="WwiseSoundCaster.Views.WwiseConnectWindow"
         x:DataType="vm:WwiseConnectWindowViewModel"
-        Title="Wwise SoundCaster — Connect"
-        Width="520" Height="320"
-        MinWidth="400" MinHeight="260"
+        Title="Connection Wizard"
+        SizeToContent="WidthAndHeight"
         CanResize="False"
         WindowStartupLocation="CenterScreen"
-        Background="#1E1E1E">
+        Background="#222225">
 
     <!-- ═══════════════════════════════════════════════════════════
          RESOURCES – Converters
@@ -21,64 +20,74 @@
         <conv:ConnectionStatusToBrushConverter x:Key="StatusToBrush"/>
     </Window.Resources>
 
-    <!-- Design-time: x:DataType above is sufficient for compiled bindings.
-         No Design.DataContext instantiation because the ViewModel requires
-         DI constructor parameters. -->
-
     <!-- ═══════════════════════════════════════════════════════════
          ROOT LAYOUT
-         A vertically-centered StackPanel holding the three elements:
-           1. Instructional label
-           2. Connect button
-           3. Status label
+         Vertically-centered content card with refined typography
+         and balanced spacing for a professional audio-tool aesthetic.
          ═══════════════════════════════════════════════════════════ -->
-    <Border Padding="40"
-            Background="#1E1E1E">
-        <StackPanel VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    Spacing="24"
-                    MaxWidth="400">
+    <Border Padding="40,32"
+            Background="#222225">
 
-            <!-- ─────────────────────────────────────────────────
-                 1. INSTRUCTIONAL LABEL
-                 Tells the user a Wwise project must be open.
-                 ───────────────────────────────────────────────── -->
-            <TextBlock Text="Please ensure a Wwise project is open before connecting."
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       FontSize="15"
-                       Foreground="#CCCCCC"
-                       HorizontalAlignment="Center"/>
+            <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Spacing="20">
 
-            <!-- ─────────────────────────────────────────────────
-                 2. CONNECT BUTTON
-                 Bound to ConnectToWwiseCommand on the ViewModel.
-                 Accent colour matching the DAW-inspired theme.
-                 ───────────────────────────────────────────────── -->
-            <Button Content="Connect to Wwise"
-                    Command="{Binding ConnectToWwiseCommand}"
-                    HorizontalAlignment="Center"
-                    Padding="24,10"
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    Foreground="White"
-                    Background="#007ACC"
-                    CornerRadius="4"
-                    Cursor="Hand"/>
+                <!-- ─────────────────────────────────────────────────
+                     1. HEADING
+                     Application identity — subtle, not overpowering.
+                     ───────────────────────────────────────────────── -->
+                <TextBlock Text="SoundBoard"
+                           TextAlignment="Center"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="#D4D4D4"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,2"/>
 
-            <!-- ─────────────────────────────────────────────────
-                 3. STATUS LABEL
-                 Text and colour are both driven by the ViewModel.
-                 Foreground uses ConnectionStatusToBrushConverter
-                 so that the colour reflects the connection state
-                 (gray / green / red) without hard-coding.
-                 ───────────────────────────────────────────────── -->
-            <TextBlock Text="{Binding StatusMessage}"
-                       Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"
-                       TextAlignment="Center"
-                       FontSize="13"
-                       HorizontalAlignment="Center"/>
+                <!-- ─────────────────────────────────────────────────
+                     2. INSTRUCTIONAL LABEL
+                     Two-line blockquote style with softer foreground.
+                     ───────────────────────────────────────────────── -->
+                <TextBlock TextAlignment="Center"
+                           FontSize="13"
+                           Foreground="#8A8A8A"
+                           LineHeight="20"
+                           HorizontalAlignment="Center"
+                           MaxWidth="320">
+                    <Run Text="Please ensure a Wwise project is open"/>
+                    <LineBreak/>
+                    <Run Text="before connecting."/>
+                </TextBlock>
 
-        </StackPanel>
+                <!-- ─────────────────────────────────────────────────
+                     3. CONNECT BUTTON
+                     Muted accent colour, balanced padding. Blends
+                     into the dark theme without jarring contrast.
+                     ───────────────────────────────────────────────── -->
+                <Button Content="Connect to Project"
+                        Command="{Binding ConnectToWwiseCommand}"
+                        HorizontalAlignment="Center"
+                        Padding="28,10"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Foreground="#E0E0E0"
+                        Background="#3A6EA5"
+                        CornerRadius="4"
+                        Cursor="Hand"/>
+
+                <!-- ─────────────────────────────────────────────────
+                     4. STATUS LABEL
+                     Subtle, small — sits below the button without
+                     competing for attention.
+                     ───────────────────────────────────────────────── -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"
+                           TextAlignment="Center"
+                           FontSize="12"
+                           HorizontalAlignment="Center"
+                           Opacity="0.85"
+                           Margin="0,2,0,0"/>
+
+            </StackPanel>
     </Border>
 </Window>
