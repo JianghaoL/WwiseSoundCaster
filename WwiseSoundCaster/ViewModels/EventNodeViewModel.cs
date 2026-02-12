@@ -48,12 +48,11 @@ public partial class EventNodeViewModel : ViewModelBase
 
     /// <summary>
     /// Children exposed to the TreeView for expansion.
-    /// Returns the real <see cref="Children"/> collection for Folders,
-    /// and an empty collection for Containers and Objects — so only
-    /// true folders are expandable in the UI.
+    /// Returns the real <see cref="Children"/> collection for Folders
+    /// and Containers, and an empty collection for leaf Objects.
     /// </summary>
     public ObservableCollection<EventNodeViewModel> TreeChildren =>
-        NodeType == WwiseNodeType.Folder ? Children : EmptyChildren;
+        NodeType == WwiseNodeType.Object ? EmptyChildren : Children;
 
     /// <summary>
     /// Full child collection — always populated to preserve the

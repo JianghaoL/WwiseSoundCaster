@@ -25,6 +25,12 @@ public partial class RtpcViewModel : ViewModelBase
     private CancellationTokenSource? _debounceCts;
     private const int DebounceDelayMs = 5; // 5ms debounce delay
 
+    /// <summary>
+    /// Guard flag — suppresses WAAPI calls from <see cref="OnCurrentValueChanged"/>
+    /// while <see cref="SetRangeAsync"/> is assigning the initial value.
+    /// </summary>
+    private bool _isInitializing;
+
     // ── Display Properties ──────────────────────────────────────
 
     /// <summary>
@@ -109,19 +115,17 @@ public partial class RtpcViewModel : ViewModelBase
         MinValue = min;
         MaxValue = max;
 
-        CurrentValue = min + (max - min) / 2; // Initialize to min or some default value within the range
-
-
-        args = new JObject
-            {
-                {"rtpc", Name},
-                {"value", min + (max - min) / 2},
-                //{"gameObject", MainWindowViewModel.GameObject?["gameObject"]}
-            };
-
-            //Console.WriteLine($"[RtpcViewModel] Calling WAAPI GameObjecct: {MainWindowViewModel.GameObject?["gameObject"]} RTPC: {Name}, Value: {value}");
-
-        result = await WwiseClient.client.Call(ak.soundengine.setRTPCValue, args);
+        // Set initial value without triggering a WAAPI call —
+        // no user interaction has occurred yet.
+        _isInitializing = true;
+        try
+        {
+            CurrentValue = min + (max - min) / 2;
+        }
+        finally
+        {
+            _isInitializing = false;
+        }
     }
 
 
@@ -155,6 +159,10 @@ public partial class RtpcViewModel : ViewModelBase
         }
 
         // ── WAAPI Integration Point with Debouncing ──
+        // Skip WAAPI calls during initialisation — the user hasn't
+        // touched the slider yet, so there's nothing to send.
+        if (_isInitializing) return;
+
         // Cancel any pending WAAPI call and schedule a new one
         _debounceCts?.Cancel();
         _debounceCts = new CancellationTokenSource();

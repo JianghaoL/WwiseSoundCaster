@@ -102,7 +102,7 @@ public partial class SwitchGroupViewModel : ViewModelBase
             {
                 {"switchGroup", GroupName},
                 {"switchState", selectedSwitch.Name},
-                //{"gameObject", MainWindowViewModel.GameObject?["gameObject"]}
+                {"gameObject", MainWindowViewModel.GameObject?["gameObject"]}
             };
 
             var result = await WwiseClient.client.Call(ak.soundengine.setSwitch, args);

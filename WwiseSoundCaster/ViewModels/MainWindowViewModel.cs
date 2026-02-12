@@ -167,6 +167,12 @@ public partial class MainWindowViewModel : ViewModelBase
         //       switch assignments) when container browsing is added.
         if (value.SourceNode != null)
         {
+            // Immediately clear stale right-panel data so the UI never
+            // shows data from the previous selection during loading.
+            RelatedEvents.Clear();
+            CurrentEventRTPCs.Clear();
+            CurrentEventSwitches.Clear();
+
             WwiseObjectHandler.nodeToObjectMap.TryGetValue(value.SourceNode, out SelectedObject);
 
             SelectedObjectNote = SelectedObject?.Notes ?? string.Empty;
@@ -353,6 +359,10 @@ public partial class MainWindowViewModel : ViewModelBase
     /// Loads Switch Group dependencies for the currently selected object.
     /// Queries WAAPI for all Switch Groups and their states, then populates
     /// the CurrentEventSwitches collection.
+    ///
+    /// Switch resolution strategy:
+    ///   • If the selected object IS a SwitchContainer, query its own configuration.
+    ///   • Otherwise, search ancestors for a SwitchContainer parent.
     /// </summary>
     private async Task LoadSwitchDependenciesAsync()
     {
@@ -363,53 +373,31 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            // Query WAAPI for Switch Groups referenced by this object
-            var args = new JObject
-            {
-                {"waql", $"$ from object \"{SelectedObject.Id}\" select ancestors where type = \"SwitchContainer\""}
-            };
+            // Step 1: Resolve the SwitchContainer and its properties.
+            // Different query depending on whether the selection IS the container.
+            JObject? switchContainerData = await ResolveSwitchContainerAsync();
 
-            var options = new JObject
-            {
-                {"return", new JArray("name", "@SwitchGroupOrStateGroup.name", "id")}
-            };
-
-            var result = await WwiseClient.client.Call(
-                ak.wwise.core.@object.get, args, options);
-
-            Console.WriteLine($"[MainWindowViewModel] Switches for selected object: {result["return"]?.ToString()}");
-
-            if (result["return"]?.Count() <= 0)
+            if (switchContainerData == null)
             {
                 CurrentEventSwitches.Clear();
                 return;
             }
 
-            // Capture the Switch Group/State Group name and the SwitchContainer id
-            var switchGroupName = result["return"]?[0]?["@SwitchGroupOrStateGroup.name"]?.ToString()
-                                  ?? result["return"]?[0]?["name"]?.ToString()
+            // Step 2: Extract the Switch Group/State Group name and container ID
+            var switchGroupName = switchContainerData["@SwitchGroupOrStateGroup.name"]?.ToString()
+                                  ?? switchContainerData["name"]?.ToString()
                                   ?? "Switch Group";
-            var switchContainerId = result["return"]?[0]?["id"]?.ToString() ?? string.Empty;
+            var switchContainerId = switchContainerData["id"]?.ToString() ?? string.Empty;
 
-            Console.WriteLine($"[MainWindowViewModel] {switchGroupName}");
-            args = new JObject
-            {
-                {"waql", $"$ \"{result["return"]?[0]?["id"]}\" select @SwitchGroupOrStateGroup select children"}
-            };
+            Console.WriteLine($"[MainWindowViewModel] Resolved SwitchContainer: {switchGroupName}");
 
-            options = new JObject
-            {
-                {"return", new JArray("id", "name", "type")}
-            };
+            // Step 3: Query the children of the Switch Group / State Group
+            var stateOptions = await FetchSwitchStatesAsync(switchContainerId);
 
-            result = await WwiseClient.client.Call(
-                ak.wwise.core.@object.get, args, options);
-
-            Console.WriteLine($"[MainWindowViewModel] Switch states for group: {result["return"]?.ToString()}");
-
+            // Step 4: Populate the ViewModel
             CurrentEventSwitches.Clear();
-            var switchReturnArray = result["return"] as JArray;
-            if (switchReturnArray != null && switchReturnArray.Count > 0)
+
+            if (stateOptions != null && stateOptions.Count > 0)
             {
                 var switchGroupVm = new SwitchGroupViewModel
                 {
@@ -417,7 +405,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     GroupName = switchGroupName
                 };
 
-                foreach (var item in switchReturnArray)
+                foreach (var item in stateOptions)
                 {
                     var option = new SwitchOptionModel
                     {
@@ -443,6 +431,78 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Console.WriteLine($"[MainWindowViewModel] Failed to load Switch dependencies: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Resolves the SwitchContainer for the currently selected object.
+    /// Returns the container's data (id, name, @SwitchGroupOrStateGroup.name).
+    ///
+    /// Resolution logic:
+    ///   • If SelectedObject.Type == "SwitchContainer": query itself.
+    ///   • Otherwise: query ancestors for a SwitchContainer parent.
+    /// </summary>
+    private async Task<JObject?> ResolveSwitchContainerAsync()
+    {
+        if (SelectedObject == null || WwiseClient.client == null)
+            return null;
+
+        JObject args;
+        JObject options = new JObject
+        {
+            {"return", new JArray("name", "@SwitchGroupOrStateGroup.name", "id")}
+        };
+
+        // Case 1: The selected object IS a SwitchContainer
+        if (SelectedObject.Type == "SwitchContainer")
+        {
+            args = new JObject
+            {
+                {"waql", $"$ from object \"{SelectedObject.Id}\""}
+            };
+        }
+        // Case 2: The selected object is a child — find its SwitchContainer ancestor
+        else
+        {
+            args = new JObject
+            {
+                {"waql", $"$ from object \"{SelectedObject.Id}\" select ancestors where type = \"SwitchContainer\""}
+            };
+        }
+
+        var result = await WwiseClient.client.Call(
+            ak.wwise.core.@object.get, args, options);
+
+        var returnArray = result["return"] as JArray;
+        return (returnArray != null && returnArray.Count > 0)
+            ? returnArray[0] as JObject
+            : null;
+    }
+
+    /// <summary>
+    /// Fetches the available switch states (children) for a given SwitchContainer.
+    /// Queries the @SwitchGroupOrStateGroup and retrieves its child states.
+    /// </summary>
+    private async Task<JArray?> FetchSwitchStatesAsync(string switchContainerId)
+    {
+        if (string.IsNullOrEmpty(switchContainerId) || WwiseClient.client == null)
+            return null;
+
+        var args = new JObject
+        {
+            {"waql", $"$ \"{switchContainerId}\" select @SwitchGroupOrStateGroup select children"}
+        };
+
+        var options = new JObject
+        {
+            {"return", new JArray("id", "name", "type")}
+        };
+
+        var result = await WwiseClient.client.Call(
+            ak.wwise.core.@object.get, args, options);
+
+        Console.WriteLine($"[MainWindowViewModel] Switch states for container: {result["return"]?.ToString()}");
+
+        return result["return"] as JArray;
     }
 
     /// <summary>
