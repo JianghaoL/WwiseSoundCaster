@@ -1,21 +1,24 @@
 # SoundBoard
 
-- [简体中文](#简体中文)
-  - [功能与使用](#功能与使用)
-  - [连接至Wwise项目](#连接至Wwise项目)
-  - [主窗口](#主窗口)
-    - [事件列表](#事件列表)
-    - [物体详情](#物体详情)
-  - [重加载项目](#重加载项目)
-  - [总结](#总结)
-- [ENGLISH](#ENGLISH)
-  - [Features and Usage](#features-and-usage)
-  - [Connecting to a Wwise Project](#connecting-to-a-wwise-project)
-  - [Main Window](#main-window)
-    - [Event List](#event-list)
-    - [Object Details](#object-details)
-  - [Reload Project](#reload-project)
-  - [Summary](#summary)
+- [SoundBoard](#soundboard)
+  - [简体中文](#简体中文)
+    - [概述](#概述)
+    - [功能与使用](#功能与使用)
+      - [连接至Wwise项目](#连接至wwise项目)
+      - [主窗口](#主窗口)
+        - [事件列表](#事件列表)
+        - [物体详情](#物体详情)
+      - [重加载项目](#重加载项目)
+    - [总结](#总结)
+  - [ENGLISH](#english)
+    - [Overview](#overview)
+    - [Features and Usage](#features-and-usage)
+      - [Connecting to a Wwise Project](#connecting-to-a-wwise-project)
+      - [Main Window](#main-window)
+        - [Event List](#event-list)
+        - [Object Details](#object-details)
+      - [Reload Project](#reload-project)
+    - [Summary](#summary)
 
 
 ## 简体中文
@@ -298,3 +301,9 @@ SoundBoard provides designers with a convenient tool to directly understand the 
 
 由李江浩编写
 Created by Jianghao Li
+
+<br><br><br>
+***Credits***
+The project icon comes from [pngtree]("https://pngtree.com/freepng/sound-icon_3581551.html")
+
+Wwise and Wwise Authoring API are products of Audiokinetic Inc. SoundBoard is an independent project developed by Jianghao Li and is not affiliated with Audiokinetic Inc. in any way.

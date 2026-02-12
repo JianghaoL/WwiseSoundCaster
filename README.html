@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>README.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="soundboard">SoundBoard</h1>
+<ul>
+<li><a href="#soundboard">SoundBoard</a>
+<ul>
+<li><a href="#%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87">简体中文</a>
+<ul>
+<li><a href="#%E6%A6%82%E8%BF%B0">概述</a></li>
+<li><a href="#%E5%8A%9F%E8%83%BD%E4%B8%8E%E4%BD%BF%E7%94%A8">功能与使用</a>
+<ul>
+<li><a href="#%E8%BF%9E%E6%8E%A5%E8%87%B3wwise%E9%A1%B9%E7%9B%AE">连接至Wwise项目</a></li>
+<li><a href="#%E4%B8%BB%E7%AA%97%E5%8F%A3">主窗口</a>
+<ul>
+<li><a href="#%E4%BA%8B%E4%BB%B6%E5%88%97%E8%A1%A8">事件列表</a></li>
+<li><a href="#%E7%89%A9%E4%BD%93%E8%AF%A6%E6%83%85">物体详情</a></li>
+</ul>
+</li>
+<li><a href="#%E9%87%8D%E5%8A%A0%E8%BD%BD%E9%A1%B9%E7%9B%AE">重加载项目</a></li>
+</ul>
+</li>
+<li><a href="#%E6%80%BB%E7%BB%93">总结</a></li>
+</ul>
+</li>
+<li><a href="#english">ENGLISH</a>
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#features-and-usage">Features and Usage</a>
+<ul>
+<li><a href="#connecting-to-a-wwise-project">Connecting to a Wwise Project</a></li>
+<li><a href="#main-window">Main Window</a>
+<ul>
+<li><a href="#event-list">Event List</a></li>
+<li><a href="#object-details">Object Details</a></li>
+</ul>
+</li>
+<li><a href="#reload-project">Reload Project</a></li>
+</ul>
+</li>
+<li><a href="#summary">Summary</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87">简体中文</h2>
+<h3 id="%E6%A6%82%E8%BF%B0">概述</h3>
+<p>SoundBoard 是一个基于Wwise Authoring API的声音管理工具。</p>
+<p>设计师们现在可以通过该工具直接接入Wwise的声音事件，摆脱了Unity引擎的依赖。</p>
+<p>项目提供了简单清晰的UI界面，展示了与声音事件绑定的各种参数，设计师们可以直接在界面上调整这些参数，并实时预览声音效果。</p>
+<p><br><br></p>
+<h3 id="%E5%8A%9F%E8%83%BD%E4%B8%8E%E4%BD%BF%E7%94%A8">功能与使用</h3>
+<h4 id="%E8%BF%9E%E6%8E%A5%E8%87%B3wwise%E9%A1%B9%E7%9B%AE">连接至Wwise项目</h4>
+<p>当项目打开时，SoundBoard会弹出<code>Connection Wizard</code>窗口，提示用户点按按钮连接到Wwise项目。</p>
+<br>
+<p><img src="./Images/connection_wizard.png" alt="连接至Wwise项目"></p>
+<blockquote>
+<p>注意： Wwise项目必须处于打开状态，且Wwise Authoring API必须已在项目设置中启用。</p>
+</blockquote>
+<p>点击按钮后，SoundBoard会尝试连接到Wwise项目，并在成功连接后短暂提示连接成功。</p>
+<p><img src="./Images/connection_wizard_success.png" alt="连接成功提示"></p>
+<p>连接成功后，SoundBoard会自动加载主窗口，并显示Wwise项目中所有的声音事件。</p>
+<p><br> <br></p>
+<h4 id="%E4%B8%BB%E7%AA%97%E5%8F%A3">主窗口</h4>
+<p>主窗口展示了Wwise项目中所有的声音事件，设计师们可以在这里浏览和选择不同的声音事件。</p>
+<p><img src="./Images/main_window.png" alt="主窗口"></p>
+<br>
+<h5 id="%E4%BA%8B%E4%BB%B6%E5%88%97%E8%A1%A8">事件列表</h5>
+<p>左侧的列表展示了Wwise项目中的所有声音物体，设计师们可以通过点击事件来查看详细信息。</p>
+<p><img src="./Images/object_list.png" alt="物体列表"></p>
+<br>
+<blockquote>
+<p>在Wwise 2025中，Wwise项目包含了Factory的默认声音物体。为了简化工作流程，SoundBoard提供了<code>过滤功能</code>，设计师们可以选择是否显示这些默认声音物体。</p>
+<p><img src="./Images/filter.png" alt="过滤默认声音物体"></p>
+</blockquote>
+<br>
+<p>用户可以点按物体名称左侧的箭头来展开该物体或文件夹内的子物体。</p>
+<p><img src="./Images/expand_objects.png" alt="展开物体"></p>
+<br>
+<p><code>黄色文件夹图标</code>表示该物体是一个文件夹，点击后可以展开或收起其中的子物体。</p>
+<p><code>蓝色方块图标</code>表示该物体是一个<code>Switch Container</code>，点击后可以展开或收起该容器内的子物体。右侧将显示该<code>Switch Container</code>的详细信息。</p>
+<p><code>灰色三角图标</code>表示该物体是一个普通的声音物体，点击后会在右侧显示该物体的详细信息。</p>
+<br>
+<p>SoundBoard提供了项目内搜索功能，设计师们可以通过输入关键词来快速找到特定的声音事件。特别的，搜索结果<code>不会</code>包含已被隐藏的物体。</p>
+<p><img src="./Images/search.png" alt="搜索功能"></p>
+<p><br><br></p>
+<h5 id="%E7%89%A9%E4%BD%93%E8%AF%A6%E6%83%85">物体详情</h5>
+<p>在左侧列表点按选择后，右侧会显示该物体的详细信息，包括<code>物体名称</code>、Wwise中添加的<code>备注</code>，已创建的<code>事件</code>，<code>RTPC</code>，和<code>Switch Group</code>。</p>
+<p><img src="./Images/detail.png" alt="物体详情"></p>
+<br>
+<ol>
+<li><strong>事件</strong></li>
+</ol>
+<p>如果一个物体绑定了<code>事件</code>，设计师可以直接点按<code>事件</code>按钮来向Wwise广播该事件。</p>
+<blockquote>
+<p>该操作等同于在游戏引擎中使用<code>AkSoundEngine.PostEvent</code>函数来广播事件。</p>
+</blockquote>
+<p>在该示例中，用户可以点击<code>Play_Coin_in_Pocket</code>事件来播放声音，或者点击<code>Stop_Coin_in_Pocket</code>事件来停止声音。</p>
+<blockquote>
+<p>事件名称是自动从Wwise项目中获取的。用户看到的命名与Wwise项目中的命名<strong>完全一致</strong>。</p>
+</blockquote>
+<p><img src="./Images/events_detail.png" alt="事件按钮"></p>
+<br>
+<ol start="2">
+<li><strong>RTPC</strong></li>
+</ol>
+<p>如果一个物体绑定了<code>RTPC</code>，设计师可以通过调整<code>RTPC</code>的滑动条来实时改变声音参数。</p>
+<blockquote>
+<p>该操作等同于在游戏引擎中使用<code>AkSoundEngine.SetRTPCValue</code>函数来设置RTPC值。</p>
+</blockquote>
+<p>SoundBoard会自动获取并设置<code>RTPC</code>的最大、最小值。默认值被设定为 <strong>$min + \frac{max - min}{2}$</strong>。</p>
+<p>设计师可以拖动滑块，或双击右侧的显示标签来输入一个具体的数值。</p>
+<p><img src="./Images/rtpc.png" alt="RTPC调整"></p>
+<br>
+<ol start="3">
+<li><strong>Switch Group</strong></li>
+</ol>
+<p>如果一个物体绑定了<code>Switch Group</code>（即<code>Switch Container</code>），设计师可以通过切换<code>Switch Group</code>的选项来改变声音的状态。</p>
+<blockquote>
+<p>该操作等同于在游戏引擎中使用<code>AkSoundEngine.SetSwitch</code>函数来设置Switch状态。</p>
+</blockquote>
+<p>SoundBoard会自动获取<code>Switch Group</code>的所有选项，并在界面上以下拉选项的形式展现。设计师们可以直接点击选项来切换状态。</p>
+<p><img src="./Images/switch_object.png" alt="Switch Group切换"></p>
+<p><br><br></p>
+<h4 id="%E9%87%8D%E5%8A%A0%E8%BD%BD%E9%A1%B9%E7%9B%AE">重加载项目</h4>
+<p>如果设计师们在使用SoundBoard的过程中对Wwise项目进行了<strong>修改</strong>（例如添加了新的事件、RTPC或Switch Group），可以通过点击主窗口左侧列表最下方的<code>Refresh Project</code>按钮来重新加载项目。</p>
+<p><img src="./Images/refresh.png" alt="重加载项目"></p>
+<p><br><br><br></p>
+<h3 id="%E6%80%BB%E7%BB%93">总结</h3>
+<p>SoundBoard为设计师们提供了一个便捷的工具，使他们能够直接在界面上了解Wwise项目中的声音事件参数，并<strong>实时预览效果</strong>。通过连接到Wwise项目，设计师们可以轻松浏览和预览<strong>声音事件</strong>，调整<strong>RTPC值</strong>，以及切换<strong>Switch Group状态</strong>，提升了工作效率和创作体验。</p>
+<p><br><br><br><br></p>
+<h2 id="english">ENGLISH</h2>
+<h3 id="overview">Overview</h3>
+<p>SoundBoard is a sound management tool based on the Wwise Authoring API.</p>
+<p>Designers can now directly access Wwise sound events through this tool, eliminating the dependency on the Unity engine.</p>
+<p>The project provides a simple and clear UI, displaying various parameters bound to sound events, allowing designers to adjust these parameters directly in the interface and preview the sound effects in real time.</p>
+<p><br><br></p>
+<h3 id="features-and-usage">Features and Usage</h3>
+<h4 id="connecting-to-a-wwise-project">Connecting to a Wwise Project</h4>
+<p>When the project is opened, SoundBoard will pop up the <code>Connection Wizard</code> window, prompting the user to click the button to connect to the Wwise project.</p>
+<br>
+<p><img src="./Images/connection_wizard.png" alt="Connecting to a Wwise Project"></p>
+<blockquote>
+<p>Note: The Wwise project must be open, and the Wwise Authoring API must be enabled in the project settings.</p>
+</blockquote>
+<p>After clicking the button, SoundBoard will attempt to connect to the Wwise project and briefly display a success message upon successful connection.</p>
+<p><img src="./Images/connection_wizard_success.png" alt="Connection Success"></p>
+<p>After a successful connection, SoundBoard will automatically load the main window and display all the sound events in the Wwise project.</p>
+<p><br> <br></p>
+<h4 id="main-window">Main Window</h4>
+<p>The main window displays all the sound events in the Wwise project, allowing designers to browse and select different sound events.</p>
+<p><img src="./Images/main_window.png" alt="Main Window"></p>
+<br>
+<h5 id="event-list">Event List</h5>
+<p>The list on the left displays all the sound objects in the Wwise project, and designers can click on an event to view its details.</p>
+<p><img src="./Images/object_list.png" alt="Object List"></p>
+<br>
+<blockquote>
+<p>In Wwise 2025, Wwise projects include default sound objects from the Factory. To streamline the workflow, SoundBoard provides a <code>filtering feature</code> that allows designers to choose whether to display these default sound objects.</p>
+<p><img src="./Images/filter.png" alt="Filtering Default Sound Objects"></p>
+</blockquote>
+<br>
+<p>Users can click the arrow to the left of an object's name to expand the object or the child objects within a folder.</p>
+<p><img src="./Images/expand_objects.png" alt="Expand Objects"></p>
+<br>
+<p><code>Yellow folder icon</code> indicates that the object is a folder, which can be expanded or collapsed to show or hide its child objects.</p>
+<p><code>Blue square icon</code> indicates that the object is a <code>Switch Container</code>, which can be expanded or collapsed to show or hide its child objects. The details of the <code>Switch Container</code> will be displayed on the right side.</p>
+<p><code>Gray triangle icon</code> indicates that the object is a regular sound object, and clicking on it will display its details on the right side.</p>
+<br>
+<p>SoundBoard provides an in-project search feature, allowing designers to quickly find specific sound events by entering keywords. Notably, the search results <code>will not</code> include hidden objects.</p>
+<p><img src="./Images/search.png" alt="Search Function"></p>
+<p><br><br></p>
+<h5 id="object-details">Object Details</h5>
+<p>After selecting an object from the list on the left, the details of the object will be displayed on the right side, including the <code>object name</code>, <code>notes</code> added in Wwise, created <code>events</code>, <code>RTPCs</code>, and <code>Switch Groups</code>.</p>
+<p><img src="./Images/detail.png" alt="Object Details"></p>
+<br>
+<ol>
+<li><strong>Events</strong></li>
+</ol>
+<p>If an object is bound to <code>events</code>, designers can directly click the <code>event</code> buttons to broadcast the events to Wwise.</p>
+<blockquote>
+<p>This operation is equivalent to using the <code>AkSoundEngine.PostEvent</code> function in the game engine.</p>
+</blockquote>
+<p>In this example, users can click the <code>Play_Coin_in_Pocket</code> event to play the sound or click the <code>Stop_Coin_in_Pocket</code> event to stop the sound.</p>
+<blockquote>
+<p>The event names are automatically retrieved from the Wwise project. The names users see are <strong>exactly the same</strong> as those in the Wwise project.</p>
+</blockquote>
+<p><img src="./Images/events_detail.png" alt="Event Buttons"></p>
+<br>
+<ol start="2">
+<li><strong>RTPC</strong></li>
+</ol>
+<p>If an object is bound to <code>RTPC</code>, designers can adjust the <code>RTPC</code> slider to change the sound parameters in real time.</p>
+<blockquote>
+<p>This operation is equivalent to using the <code>AkSoundEngine.SetRTPCValue</code> function in the game engine.</p>
+</blockquote>
+<p>SoundBoard will automatically retrieve and set the maximum and minimum values for the <code>RTPC</code>. The default value is set to <strong>$min + \frac{max - min}{2}$</strong>.</p>
+<p>Designers can drag the slider or double-click the display label on the right to enter a specific value.</p>
+<p><img src="./Images/rtpc.png" alt="RTPC Adjustment"></p>
+<br>
+<ol start="3">
+<li><strong>Switch Group</strong></li>
+</ol>
+<p>If an object is bound to <code>Switch Group</code> (i.e., <code>Switch Container</code>), designers can change the sound state by switching the options of the <code>Switch Group</code>.</p>
+<blockquote>
+<p>This operation is equivalent to using the <code>AkSoundEngine.SetSwitch</code> function in the game engine.</p>
+</blockquote>
+<p>SoundBoard will automatically retrieve all options of the <code>Switch Group</code> and display them as a dropdown menu in the interface. Designers can directly click the options to switch states.</p>
+<p><img src="./Images/switch_object.png" alt="Switch Group"></p>
+<p><br><br></p>
+<h4 id="reload-project">Reload Project</h4>
+<p>If designers make <strong>modifications</strong> to the Wwise project while using SoundBoard (e.g., adding new events, RTPCs, or Switch Groups), they can click the <code>Refresh Project</code> button at the bottom of the list on the left side of the main window to reload the project.</p>
+<p><img src="./Images/refresh.png" alt="Reload Project"></p>
+<p><br><br><br></p>
+<h3 id="summary">Summary</h3>
+<p>SoundBoard provides designers with a convenient tool to directly understand the sound event parameters in the Wwise project and <strong>preview the effects in real time</strong>. By connecting to the Wwise project, designers can easily browse and preview <strong>sound events</strong>, adjust <strong>RTPC values</strong>, and switch <strong>Switch Group states</strong>, improving work efficiency and creative experience.</p>
+<p><br><br><br><br></p>
+<p>由李江浩编写
+Created by Jianghao Li</p>
+<p><br><br><br>
+<em><strong>Credits</strong></em>
+The project icon comes from <a href="%22https://pngtree.com/freepng/sound-icon_3581551.html%22">pngtree</a></p>
+<p>Wwise and Wwise Authoring API are products of Audiokinetic Inc. SoundBoard is an independent project developed by Jianghao Li and is not affiliated with Audiokinetic Inc. in any way.</p>
+
+</body>
+</html>

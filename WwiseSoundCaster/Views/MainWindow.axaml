@@ -11,7 +11,8 @@
         Title="Wwise SoundCaster"
         Width="1280" Height="720"
         MinWidth="900" MinHeight="500"
-        Background="#1E1E1E">
+        Background="#1E1E1E"
+        Icon="/Assets/soundboard.ico">
 
     <!-- ═══════════════════════════════════════════════════════════
          RESOURCES
