@@ -105,8 +105,7 @@ public partial class WwiseConnectWindowViewModel : ViewModelBase
         {
             // ── Failure path ────────────────────────────────────
             Status = ConnectionStatus.Failed;
-            StatusMessage = _connectionService.StatusMessage
-                            ?? "Connection failed — is Wwise running with WAAPI enabled?";
+            StatusMessage = "Connection failed — is Wwise running with WAAPI enabled?";
         }
     }
 }
