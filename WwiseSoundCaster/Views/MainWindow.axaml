@@ -118,6 +118,15 @@
                           SelectedItem="{Binding SelectedEventNode, Mode=TwoWay}"
                           Margin="4,0,4,4"
                           Background="Transparent">
+                    <!-- Bind TreeViewItem.IsExpanded to the node's IsExpanded
+                         property so search results appear fully expanded. -->
+                    <TreeView.Styles>
+                        <Style Selector="TreeViewItem"
+                               x:DataType="vm:EventNodeViewModel">
+                            <Setter Property="IsExpanded"
+                                    Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        </Style>
+                    </TreeView.Styles>
                     <TreeView.ItemTemplate>
                         <!-- Only Folder nodes are expandable — TreeChildren returns
                              the real Children for folders and an empty collection

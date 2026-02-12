@@ -744,11 +744,14 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // ── Search path: recursively match and build a pruned tree.
+        //    All result nodes are expanded so the user sees matches
+        //    immediately without having to expand each branch.
         foreach (var node in _filteredHierarchy)
         {
             var matched = SearchNode(node, keyword);
             if (matched != null)
             {
+                ExpandAll(matched);
                 EventTreeNodes.Add(matched);
             }
         }
@@ -811,6 +814,21 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Recursively sets <see cref="EventNodeViewModel.IsExpanded"/> to
+    /// <c>true</c> on the given node and all its descendants.
+    /// Used after building a search-result tree so every matching branch
+    /// is visible in the TreeView without manual expansion.
+    /// </summary>
+    private static void ExpandAll(EventNodeViewModel node)
+    {
+        node.IsExpanded = true;
+        foreach (var child in node.Children)
+        {
+            ExpandAll(child);
+        }
     }
 
     /// <summary>

@@ -28,6 +28,14 @@ public partial class EventNodeViewModel : ViewModelBase
     [ObservableProperty]
     private WwiseNodeType _nodeType;
 
+    /// <summary>
+    /// Controls whether the TreeViewItem for this node is expanded.
+    /// Set to <c>true</c> during search so results are immediately visible
+    /// without manual expansion; <c>false</c> by default for normal browsing.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isExpanded;
+
     /// <summary>Notify computed properties when <see cref="NodeType"/> changes.</summary>
     partial void OnNodeTypeChanged(WwiseNodeType value)
     {
